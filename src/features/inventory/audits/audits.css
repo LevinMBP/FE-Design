@@ -1,0 +1,33 @@
+.audit-line-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  min-height: 18px;
+}
+
+.audit-line-meta strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Net change footer shared by the adjustment form + summaries. */
+.adj-net {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 12px;
+  margin: 18px 0;
+  font-size: 16px;
+}
+
+.adj-net strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.adj-net--up strong {
+  color: var(--ant-color-success, #16a34a);
+}
+
+.adj-net--down strong {
+  color: var(--ant-color-error, #dc2626);
+}

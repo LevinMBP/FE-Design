@@ -1,0 +1,276 @@
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-surface-alt: #fafbfc;
+  --color-surface-hover: #f1f2f5;
+  --color-border: #e2e5ea;
+  --color-border-strong: #cbd0d8;
+
+  /* Text */
+  --color-text-primary: #1a1d24;
+  --color-text-secondary: #5b6270;
+  --color-text-tertiary: #8a909c;
+
+  /* Brand / primary */
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-primary-active: #3730a3;
+  --color-on-primary: #ffffff;
+  --color-primary-soft-bg: #ecebfd;
+  --color-primary-soft-text: #4338ca;
+  /* Filled primary button (matches primary in light mode). */
+  --btn-primary-bg: #4f46e5;
+  --btn-primary-hover-bg: #4338ca;
+  /* Accent for nav hover/active. */
+  --sidebar-accent: #4f46e5;
+
+  /* Secondary */
+  --color-secondary: #5b6472;
+  --color-secondary-soft-bg: #eef0f3;
+  --color-on-secondary: #ffffff;
+
+  /* Links */
+  --color-link: #4f46e5;
+  --color-link-hover: #4338ca;
+  --color-link-visited: #6a4fc4;
+
+  /* Disabled */
+  --color-disabled-bg: #eef0f3;
+  --color-disabled-text: #a4a9b3;
+  --color-disabled-border: #dcdfe4;
+
+  /* Semantic */
+  --color-success: #1f9d55;
+  --color-success-soft-bg: #e7f7ed;
+  --color-success-text: #166b3b;
+
+  --color-warning: #c8860d;
+  --color-warning-soft-bg: #fcf1dc;
+  --color-warning-text: #8a5c09;
+
+  --color-danger: #d6433d;
+  --color-danger-soft-bg: #fbeae9;
+  --color-danger-text: #9b2e29;
+
+  --color-info: #2f86d6;
+  --color-info-soft-bg: #e8f1fc;
+  --color-info-text: #205e97;
+
+  --color-focus-ring: rgba(79, 70, 229, 0.35);
+  --color-overlay: rgba(17, 19, 26, 0.45);
+  --color-mock-border: #c8860d;
+  --color-mock-bg: #fcf1dc;
+  --color-mock-text: #8a5c09;
+
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12.5px;
+  --font-size-base: 13.5px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+  --line-height-base: 1.45;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Controls */
+  --control-height-sm: 28px;
+  --control-height-md: 32px;
+  --control-height-lg: 38px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* Layout */
+  --sidebar-width: 232px;
+  --sidebar-width-collapsed: 60px;
+  --topbar-height: 48px;
+  --table-row-height: 36px;
+
+  --shadow-sm: 0 1px 2px rgba(17, 19, 26, 0.06);
+  --shadow-md: 0 4px 12px rgba(17, 19, 26, 0.1);
+  --shadow-lg: 0 12px 32px rgba(17, 19, 26, 0.16);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #11131a;
+  --color-surface: #181b23;
+  --color-surface-alt: #1f232c;
+  --color-surface-hover: #262b35;
+  --color-border: #2a2f3a;
+  --color-border-strong: #383e4b;
+
+  --color-text-primary: #e8eaee;
+  --color-text-secondary: #a7acb8;
+  --color-text-tertiary: #757b87;
+
+  --color-primary: #818cf8;
+  --color-primary-hover: #a5b4fc;
+  --color-primary-active: #6366f1;
+  --color-on-primary: #ffffff;
+  /* Filled primary button — deliberately darker than the bright accent so
+     white button text stays legible and the fill isn't too bright. */
+  --btn-primary-bg: #6366f1;
+  --btn-primary-hover-bg: #4f46e5;
+  --sidebar-accent: #818cf8;
+  --color-primary-soft-bg: #262a45;
+  --color-primary-soft-text: #c7d0fe;
+
+  --color-secondary: #9099a8;
+  --color-secondary-soft-bg: #232730;
+  --color-on-secondary: #0b0e18;
+
+  --color-link: #a5b4fc;
+  --color-link-hover: #c7d0fe;
+  --color-link-visited: #b79cf2;
+
+  --color-disabled-bg: #1c1f27;
+  --color-disabled-text: #565b66;
+  --color-disabled-border: #2a2f3a;
+
+  --color-success: #36c172;
+  --color-success-soft-bg: #16301f;
+  --color-success-text: #7ce3a3;
+
+  --color-warning: #e0a53a;
+  --color-warning-soft-bg: #332a14;
+  --color-warning-text: #f3c978;
+
+  --color-danger: #e5645f;
+  --color-danger-soft-bg: #3a1e1d;
+  --color-danger-text: #f5a19d;
+
+  --color-info: #5aa7e8;
+  --color-info-soft-bg: #1b2c3d;
+  --color-info-text: #9ac8f0;
+
+  --color-focus-ring: rgba(129, 140, 248, 0.4);
+  --color-overlay: rgba(5, 6, 10, 0.6);
+  --color-mock-border: #e0a53a;
+  --color-mock-bg: #332a14;
+  --color-mock-text: #f3c978;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* ------------------------------------------------------------------ *
+ * Legacy alias bridge — maps the older token names still used across  *
+ * component CSS onto the new design system above. These use var()     *
+ * references, so they re-resolve automatically per light/dark theme.  *
+ * (Migrate components to the --color-* names over time, then drop.)    *
+ * ------------------------------------------------------------------ */
+:root {
+  --bg: var(--color-bg);
+  --shell-bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --input-bg: var(--color-surface);
+  --border: var(--color-border);
+
+  --text: var(--color-text-primary);
+  --text-muted: var(--color-text-secondary);
+  --text-subtle: var(--color-text-tertiary);
+
+  --brand: var(--color-primary);
+  --brand-600: var(--color-primary-hover);
+  --brand-700: var(--color-primary-active);
+  --brand-glow: var(--color-focus-ring);
+  --danger: var(--color-danger);
+
+  --radius: var(--radius-lg);
+  --shadow-card: var(--shadow-md);
+  --sans: var(--font-family);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+/* Anchors: keep the token color, but no blanket hover underline — links are
+   used as nav items and button wrappers throughout the app. */
+a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--color-link-hover);
+}
+
+button {
+  font-family: inherit;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+::selection {
+  background: var(--color-primary-soft-bg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-tertiary {
+  color: var(--color-text-tertiary);
+}
+
+.mocked-field {
+  border: 1px dashed var(--color-mock-border) !important;
+  background: var(--color-mock-bg) !important;
+  border-radius: var(--radius-sm);
+}

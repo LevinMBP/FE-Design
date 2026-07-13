@@ -1,0 +1,121 @@
+/* ------------------------------------------------------------------ *
+ * AntD component chrome tuned to match the StockFlo look. These use    *
+ * CSS design tokens (--color-*), so they re-resolve per light/dark.    *
+ * Structural sizing (control height, radius, font) lives in            *
+ * app/AntdProvider.tsx; this file handles what tokens can't express.   *
+ * ------------------------------------------------------------------ */
+
+/* ---- Table: bordered, rounded card with uppercase tertiary headers ---- */
+.ant-table-wrapper .ant-table {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+/* Clip the header/rows to the rounded corners. */
+.ant-table-wrapper .ant-table-container {
+  border-start-start-radius: var(--radius-lg);
+  border-start-end-radius: var(--radius-lg);
+  border-end-start-radius: var(--radius-lg);
+  border-end-end-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th {
+  background: var(--color-surface-alt);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--color-border);
+}
+/* Remove AntD's vertical header cell divider for a cleaner header row. */
+.ant-table-wrapper .ant-table-thead > tr > th::before {
+  display: none !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--color-border);
+}
+.ant-table-wrapper .ant-table-tbody > tr:last-child > td {
+  border-bottom: none;
+}
+.ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: var(--color-surface-hover);
+}
+
+/* FIFO layers panel above the stock ledger. */
+.fifo-panel {
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.fifo-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--color-surface-alt);
+  border-bottom: 1px solid var(--color-border);
+}
+.fifo-panel__title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-tertiary);
+}
+.fifo-panel__stats {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+.fifo-panel__stats strong {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  margin-left: 4px;
+}
+/* The layers table sits flush inside the panel — drop its own frame. */
+.fifo-panel .ant-table-wrapper .ant-table {
+  border: none;
+  border-radius: 0;
+}
+
+/* Expanded per-lot FIFO breakdown under a ledger row. */
+.ledger-lots__title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-tertiary);
+  margin-bottom: 8px;
+}
+.ledger-lots .ant-table-wrapper .ant-table {
+  border: 1px solid var(--color-border);
+}
+
+/* Opening-balance row in the stock ledger reads as a muted anchor. */
+.ant-table-wrapper .ledger-row--opening > td {
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* ---- Tag → StockFlo badge: compact, square-ish, semibold ----
+ * The outlined look comes from AntD's native variant (set globally via
+ * ConfigProvider `tag={{ variant: 'outlined' }}`); we only tune sizing here. */
+.ant-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1;
+}

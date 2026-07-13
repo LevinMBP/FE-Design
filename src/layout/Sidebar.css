@@ -1,0 +1,221 @@
+.sidebar {
+  position: sticky;
+  top: 10px;
+  align-self: start;
+  height: calc(100svh - 20px);
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  /* Floating card (Venturo) filled with StockFlo's sidebar color. */
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.sidebar__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  min-width: 0;
+  flex: 1;
+  color: var(--brand);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  text-decoration: none;
+}
+.sidebar__brand svg {
+  flex: none;
+}
+
+.sidebar__toggle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-subtle);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar__toggle:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.sidebar__module-label {
+  padding: 0 10px;
+  margin-bottom: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-subtle);
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar__link svg {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  color: var(--text-subtle);
+  transition: color 0.15s;
+}
+.sidebar__link:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.sidebar__link:hover svg {
+  color: var(--sidebar-accent);
+}
+
+.sidebar__link.is-active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(16, 18, 40, 0.06);
+}
+.sidebar__link.is-active svg {
+  color: var(--sidebar-accent);
+}
+
+.sidebar__link--disabled {
+  color: var(--text-subtle);
+  cursor: default;
+}
+.sidebar__link--disabled:hover {
+  background: transparent;
+  color: var(--text-subtle);
+}
+.sidebar__link--disabled:hover svg {
+  color: var(--text-subtle);
+}
+
+.sidebar__soon {
+  margin-left: auto;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-subtle);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.sidebar__spacer {
+  flex: 1;
+}
+
+.sidebar__card {
+  display: grid;
+  gap: 2px;
+  padding: 13px;
+  border-radius: 13px;
+  background: linear-gradient(150deg, var(--color-primary), var(--color-primary-active));
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 8px 20px -12px var(--brand-glow);
+  transition: filter 0.15s, transform 0.05s;
+}
+/* Keep white text/icon on hover — the global `a:hover` colour would otherwise
+   tint them into the card's dark gradient and make them vanish. The child
+   rules are explicit belt-and-suspenders in case another anchor rule wins. */
+.sidebar__card:hover {
+  color: #fff;
+  filter: brightness(1.08);
+  box-shadow: 0 10px 22px -10px var(--brand-glow);
+}
+.sidebar__card:hover .sidebar__card-title,
+.sidebar__card:hover .sidebar__card-text,
+.sidebar__card:hover .sidebar__card-icon {
+  color: #fff;
+}
+.sidebar__card:active {
+  transform: translateY(1px);
+}
+.sidebar__card-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.16);
+  margin-bottom: 5px;
+}
+.sidebar__card-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+.sidebar__card-text {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* Collapsed: icons only, labels hidden, tooltips supply the names. */
+.sidebar[data-collapsed] .sidebar__label,
+.sidebar[data-collapsed] .sidebar__soon,
+.sidebar[data-collapsed] .sidebar__card-title,
+.sidebar[data-collapsed] .sidebar__card-text {
+  display: none;
+}
+
+.sidebar[data-collapsed] .sidebar__head {
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+.sidebar[data-collapsed] .sidebar__brand {
+  flex: none;
+  justify-content: center;
+  padding: 6px;
+}
+
+.sidebar[data-collapsed] .sidebar__link {
+  justify-content: center;
+  padding: 9px 0;
+}
+
+.sidebar[data-collapsed] .sidebar__card {
+  padding: 9px;
+  justify-items: center;
+}
+.sidebar[data-collapsed] .sidebar__card-icon {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    display: none;
+  }
+}
