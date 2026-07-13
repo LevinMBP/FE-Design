@@ -8,8 +8,7 @@ import {
 import { useGetCustomersQuery } from '../contacts/contactsApi'
 import { useGetTaxesQuery } from '../finance/financeApi'
 import type { Customer } from '../contacts/types'
-import type { Tax } from '../finance/types'
-import { isSalesTax } from './salesDocMath'
+import { isSalesTax, type Tax } from '../finance/types'
 import type { StockItemKind } from '../inventory/types'
 import type { SalesDocLineInput } from './types'
 

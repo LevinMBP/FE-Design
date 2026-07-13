@@ -1,20 +1,30 @@
 export type FinanceStatus = 'active' | 'inactive'
 
-/** Whether a tax rate is added on top of (exclusive) or already baked into (inclusive) a price. */
-export type TaxComputation = 'exclusive' | 'inclusive'
+/**
+ * The GL role a tax's account plays when a document posts, mirroring the
+ * backend's `TaxAccountPurpose` enum.
+ */
+export type TaxAccountPurpose =
+  | 'input_tax' // Purchase side, DR (VAT Input, Creditable WHT)
+  | 'output_tax' // Sales side, CR (VAT Output)
+  | 'wht_payable' // Purchase side, CR (WHT Payable)
+  | 'wht_receivable' // Sales side, DR (Creditable WHT on sales)
 
-/** Where a tax applies in the transaction flow. */
-export type TaxAppliesTo = 'sales' | 'purchases' | 'both'
+/** A GL account a tax rate posts to for a given purpose. Mirrors `TaxRateAccount`. */
+export interface TaxRateAccount {
+  id: string
+  glAccountId: string
+  purpose: TaxAccountPurpose
+}
 
 export interface Tax {
   id: string
   name: string
   /** Percentage rate, e.g. 12 for 12% VAT. */
   rate: number
-  computation: TaxComputation
-  appliesTo: TaxAppliesTo
   description: string
   status: FinanceStatus
+  accounts: TaxRateAccount[]
 }
 
 /** High-level category for a payment method. */
@@ -40,21 +50,26 @@ export interface PaymentMethod {
   status: FinanceStatus
 }
 
-export type NewTax = Omit<Tax, 'id'>
+export type NewTaxRateAccount = Omit<TaxRateAccount, 'id'>
+export type NewTax = Omit<Tax, 'id' | 'accounts'> & { accounts: NewTaxRateAccount[] }
 export type NewPaymentMethod = Omit<PaymentMethod, 'id'>
 
-/** Options for the tax "applies to" field. */
-export const TAX_APPLIES_TO: { value: TaxAppliesTo; label: string }[] = [
-  { value: 'sales', label: 'Sales' },
-  { value: 'purchases', label: 'Purchases' },
-  { value: 'both', label: 'Sales & Purchases' },
+/** Options for the tax account purpose field. */
+export const TAX_ACCOUNT_PURPOSES: {
+  value: TaxAccountPurpose
+  label: string
+  hint: string
+}[] = [
+  { value: 'input_tax', label: 'Input Tax', hint: 'Debited on purchase' },
+  { value: 'output_tax', label: 'Output Tax', hint: 'Credited on sale' },
+  { value: 'wht_payable', label: 'WHT Payable', hint: 'Credited on purchase' },
+  { value: 'wht_receivable', label: 'WHT Receivable', hint: 'Debited on sale' },
 ]
 
-/** Options for the tax computation field. */
-export const TAX_COMPUTATIONS: { value: TaxComputation; label: string }[] = [
-  { value: 'exclusive', label: 'Exclusive (added on top)' },
-  { value: 'inclusive', label: 'Inclusive (baked into price)' },
-]
+/** Purposes that post when this tax is used on a purchase document. */
+export const PURCHASE_TAX_PURPOSES: TaxAccountPurpose[] = ['input_tax', 'wht_payable']
+/** Purposes that post when this tax is used on a sales document. */
+export const SALES_TAX_PURPOSES: TaxAccountPurpose[] = ['output_tax', 'wht_receivable']
 
 /** Options for the payment-method type field. */
 export const PAYMENT_METHOD_TYPES: { value: PaymentMethodType; label: string }[] = [
@@ -70,6 +85,21 @@ export function paymentMethodTypeLabel(type: PaymentMethodType): string {
   return PAYMENT_METHOD_TYPES.find((t) => t.value === type)?.label ?? type
 }
 
-export function taxAppliesToLabel(value: TaxAppliesTo): string {
-  return TAX_APPLIES_TO.find((t) => t.value === value)?.label ?? value
+export function taxAccountPurposeLabel(value: TaxAccountPurpose): string {
+  return TAX_ACCOUNT_PURPOSES.find((p) => p.value === value)?.label ?? value
+}
+
+/** Active taxes with at least one account for the given purposes. */
+function taxAppliesToPurposes(tax: Tax, purposes: TaxAccountPurpose[]): boolean {
+  return tax.status === 'active' && tax.accounts.some((a) => purposes.includes(a.purpose))
+}
+
+/** Active taxes that can be applied to a purchase (input VAT, WHT payable). */
+export function isPurchaseTax(tax: Tax): boolean {
+  return taxAppliesToPurposes(tax, PURCHASE_TAX_PURPOSES)
+}
+
+/** Active taxes that can be applied to a sale (output VAT, WHT receivable). */
+export function isSalesTax(tax: Tax): boolean {
+  return taxAppliesToPurposes(tax, SALES_TAX_PURPOSES)
 }

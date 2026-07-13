@@ -105,7 +105,7 @@ function LineItemsField({ form, items, itemsLoading, itemMeta, showDetails }: Pr
                 marginBottom: showDetails ? 12 : 8,
                 paddingBottom: showDetails ? 10 : 0,
                 borderBottom: showDetails
-                  ? '1px dashed var(--border-color, rgba(128,128,128,0.25))'
+                  ? '1px dashed var(--border)'
                   : undefined,
               }}
             >

@@ -33,6 +33,7 @@ let accounts: Account[] = [
   { id: 'acc_ar', code: '1100', name: 'Accounts Receivable', type: 'asset', openingBalance: 20000 },
   { id: 'acc_inv', code: '1200', name: 'Inventory', type: 'asset', openingBalance: 30000 },
   { id: 'acc_vat_in', code: '1300', name: 'Input Tax Receivable', type: 'asset', openingBalance: 0 },
+  { id: 'acc_wht_recv', code: '1310', name: 'Creditable Withholding Tax', type: 'asset', openingBalance: 0 },
   { id: 'acc_ppe', code: '1500', name: 'Property & Equipment', type: 'asset', openingBalance: 0 },
   { id: 'acc_ap', code: '2000', name: 'Accounts Payable', type: 'liability', openingBalance: 25000 },
   { id: 'acc_accr', code: '2100', name: 'Accrued Expenses', type: 'liability', openingBalance: 0 },

@@ -14,10 +14,52 @@ import type {
 const uid = (prefix: string) => `${prefix}_${crypto.randomUUID().slice(0, 8)}`
 
 let taxes: Tax[] = [
-  { id: 'tax_vat', name: 'VAT', rate: 12, computation: 'exclusive', appliesTo: 'both', description: 'Standard value-added tax.', status: 'active' },
-  { id: 'tax_vat_zero', name: 'Zero-rated VAT', rate: 0, computation: 'exclusive', appliesTo: 'sales', description: 'Export and zero-rated sales.', status: 'active' },
-  { id: 'tax_wht', name: 'Withholding Tax', rate: 2, computation: 'exclusive', appliesTo: 'purchases', description: 'Expanded withholding tax on suppliers.', status: 'active' },
-  { id: 'tax_exempt', name: 'VAT Exempt', rate: 0, computation: 'exclusive', appliesTo: 'both', description: 'Exempt goods and services.', status: 'inactive' },
+  {
+    id: 'tax_vat',
+    name: 'VAT',
+    rate: 12,
+    description: 'Standard value-added tax.',
+    status: 'active',
+    accounts: [
+      { id: 'txa_vat_in', glAccountId: 'acc_vat_in', purpose: 'input_tax' },
+      { id: 'txa_vat_out', glAccountId: 'acc_vat_out', purpose: 'output_tax' },
+    ],
+  },
+  {
+    id: 'tax_vat_zero',
+    name: 'Zero-rated VAT',
+    rate: 0,
+    description: 'Export and zero-rated sales.',
+    status: 'active',
+    accounts: [{ id: 'txa_vat_zero_out', glAccountId: 'acc_vat_out', purpose: 'output_tax' }],
+  },
+  {
+    id: 'tax_wht',
+    name: 'Withholding Tax',
+    rate: 2,
+    description: 'Expanded withholding tax on suppliers.',
+    status: 'active',
+    accounts: [{ id: 'txa_wht_payable', glAccountId: 'acc_wht', purpose: 'wht_payable' }],
+  },
+  {
+    id: 'tax_wht_recv',
+    name: 'Creditable WHT (Sales)',
+    rate: 1,
+    description: 'Tax withheld by customers on sales, creditable against income tax.',
+    status: 'active',
+    accounts: [{ id: 'txa_wht_recv', glAccountId: 'acc_wht_recv', purpose: 'wht_receivable' }],
+  },
+  {
+    id: 'tax_exempt',
+    name: 'VAT Exempt',
+    rate: 0,
+    description: 'Exempt goods and services.',
+    status: 'inactive',
+    accounts: [
+      { id: 'txa_exempt_in', glAccountId: 'acc_vat_in', purpose: 'input_tax' },
+      { id: 'txa_exempt_out', glAccountId: 'acc_vat_out', purpose: 'output_tax' },
+    ],
+  },
 ]
 
 let paymentMethods: PaymentMethod[] = [
@@ -32,7 +74,11 @@ export function listTaxes(): Tax[] {
   return [...taxes]
 }
 export function addTax(input: NewTax): Tax {
-  const record: Tax = { id: uid('tax'), ...input }
+  const record: Tax = {
+    id: uid('tax'),
+    ...input,
+    accounts: input.accounts.map((a) => ({ id: uid('txa'), ...a })),
+  }
   taxes = [record, ...taxes]
   return record
 }

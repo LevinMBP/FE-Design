@@ -85,18 +85,10 @@ export function dueDateFrom(term: PaymentTerm, date: string): string {
   return dayjs(date).add(TERM_DAYS[term] ?? 0, 'day').format('YYYY-MM-DD')
 }
 
-/** Display label captured on a document, e.g. "VAT 12%" or "VAT 12% incl.". */
+/** Display label captured on a document, e.g. "VAT 12%". */
 export function taxLabelOf(tax: Tax | undefined): string {
   if (!tax || !tax.rate) return 'No tax'
-  return `${tax.name} ${tax.rate}%${tax.computation === 'inclusive' ? ' incl.' : ''}`
-}
-
-/** Active taxes that can apply to a sale (sales or both). */
-export function isSalesTax(tax: Tax): boolean {
-  return (
-    tax.status === 'active' &&
-    (tax.appliesTo === 'sales' || tax.appliesTo === 'both')
-  )
+  return `${tax.name} ${tax.rate}%`
 }
 
 /* ---- Status display (label + Ant Design Tag color) ---- */

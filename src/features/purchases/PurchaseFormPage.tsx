@@ -22,6 +22,7 @@ import {
 } from '../inventory/inventoryApi'
 import { useGetVendorsQuery } from '../contacts/contactsApi'
 import { useGetTaxesQuery } from '../finance/financeApi'
+import { isPurchaseTax } from '../finance/types'
 import {
   PURCHASE_TYPE_LABELS,
   purchaseAddsStock,
@@ -50,9 +51,20 @@ interface FormValues {
   reference: string
   vendorId?: string
   date: Dayjs
-  dueDate?: Dayjs
+  paymentTermDays?: number
   note?: string
   lines: LineValues[]
+}
+
+// Adds N business days to a date, skipping Saturdays and Sundays.
+function addBusinessDays(start: Dayjs, days: number): Dayjs {
+  let result = start
+  let remaining = days
+  while (remaining > 0) {
+    result = result.add(1, 'day')
+    if (result.day() !== 0 && result.day() !== 6) remaining -= 1
+  }
+  return result
 }
 
 const TYPE_OPTIONS = (Object.keys(PURCHASE_TYPE_LABELS) as PurchaseType[]).map(
@@ -82,9 +94,7 @@ function PurchaseFormPage() {
   }, [nextRef, form])
 
   // Taxes that can be added on a purchase (input VAT etc.).
-  const purchaseTaxes = (taxes ?? []).filter(
-    (t) => t.status === 'active' && (t.appliesTo === 'purchases' || t.appliesTo === 'both'),
-  )
+  const purchaseTaxes = (taxes ?? []).filter(isPurchaseTax)
   const taxById = useMemo(
     () => new Map(purchaseTaxes.map((t) => [t.id, t])),
     [purchaseTaxes],
@@ -189,7 +199,10 @@ function PurchaseFormPage() {
       const purchase = await addPurchase({
         reference: (values.reference ?? '').trim(),
         date: values.date.format('YYYY-MM-DD'),
-        dueDate: values.dueDate ? values.dueDate.format('YYYY-MM-DD') : '',
+        dueDate:
+          values.paymentTermDays != null
+            ? addBusinessDays(values.date, values.paymentTermDays).format('YYYY-MM-DD')
+            : '',
         vendorId: values.vendorId ?? '',
         note: values.note ?? '',
         lines: lineInputs,
@@ -226,14 +239,14 @@ function PurchaseFormPage() {
           initialValues={{
             reference: '',
             date: dayjs(),
-            dueDate: dayjs(),
+            paymentTermDays: 30,
             note: '',
             lines: [{ ...NEW_LINE }],
           }}
           onFinish={onFinish}
         >
           <Row gutter={16}>
-            <Col span={6}>
+            <Col xs={12} sm={12} md={8}>
               <Form.Item
                 name="reference"
                 label="PO #"
@@ -242,7 +255,7 @@ function PurchaseFormPage() {
                 <Input placeholder="PO-001" />
               </Form.Item>
             </Col>
-            <Col span={6}>
+            <Col xs={12} sm={12} md={8}>
               <Form.Item
                 name="date"
                 label="Date"
@@ -251,16 +264,24 @@ function PurchaseFormPage() {
                 <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
               </Form.Item>
             </Col>
-            <Col span={6}>
+            <Col xs={12} sm={12} md={8}>
               <Form.Item
-                name="dueDate"
-                label="Payment term"
-                tooltip="When payment to the vendor is due."
+                name="paymentTermDays"
+                label="Payment term (days)"
+                tooltip="Automatically skips weekends when calculating the due date."
               >
-                <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
+                <InputNumber
+                  style={{ width: '100%' }}
+                  min={0}
+                  precision={0}
+                  placeholder="e.g. 30"
+                />
               </Form.Item>
             </Col>
-            <Col span={6}>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={24}>
               <Form.Item
                 name="vendorId"
                 label="Vendor"
@@ -285,27 +306,31 @@ function PurchaseFormPage() {
           <Form.List name="lines">
             {(fields, { add, remove }) => (
               <>
-                {fields.map(({ key, name, ...rest }) => {
+                {fields.map(({ key, name, ...rest }, idx) => {
                   const l = lines[name]
                   const stock = purchaseAddsStock(l?.type ?? 'material')
                   return (
-                    <div
-                      key={key}
-                      style={{
-                        border: '1px solid var(--border-color, #eee)',
-                        borderRadius: 8,
-                        padding: 12,
-                        marginBottom: 10,
-                      }}
-                    >
+                    <div key={key} className="docline-card">
+                      <div className="docline-header">
+                        <span className="docline-header__index">Line {idx + 1}</span>
+                        <Button
+                          type="text"
+                          danger
+                          aria-label="Remove line"
+                          icon={<Trash2 size={16} />}
+                          disabled={fields.length === 1}
+                          onClick={() => remove(name)}
+                        />
+                      </div>
+
                       <Row gutter={12} align="middle">
-                        <Col span={5}>
+                        <Col xs={24} sm={8} md={5}>
                           <Form.Item
                             {...rest}
                             name={[name, 'type']}
                             label="Type"
                             rules={[{ required: true, message: 'Type' }]}
-                            style={{ marginBottom: 0 }}
+                            style={{ marginBottom: 8 }}
                           >
                             <Select
                               options={TYPE_OPTIONS}
@@ -313,14 +338,14 @@ function PurchaseFormPage() {
                             />
                           </Form.Item>
                         </Col>
-                        <Col span={stock ? 11 : 17}>
+                        <Col xs={24} sm={16} md={stock ? 11 : 19}>
                           {stock ? (
                             <Form.Item
                               {...rest}
                               name={[name, 'item']}
                               label="Item"
                               rules={[{ required: true, message: 'Select an item' }]}
-                              style={{ marginBottom: 0 }}
+                              style={{ marginBottom: 8 }}
                             >
                               <Select
                                 showSearch
@@ -337,20 +362,20 @@ function PurchaseFormPage() {
                               name={[name, 'description']}
                               label="Description"
                               rules={[{ required: true, message: 'Enter a description' }]}
-                              style={{ marginBottom: 0 }}
+                              style={{ marginBottom: 8 }}
                             >
                               <Input placeholder="e.g. Delivery van, Rent, Consulting" />
                             </Form.Item>
                           )}
                         </Col>
                         {stock && (
-                          <Col span={6}>
+                          <Col xs={24} sm={24} md={8}>
                             <Form.Item
                               {...rest}
                               name={[name, 'location']}
                               label="Location"
                               rules={[{ required: true, message: 'Select a location' }]}
-                              style={{ marginBottom: 0 }}
+                              style={{ marginBottom: 8 }}
                             >
                               <Select
                                 placeholder="Where to store"
@@ -359,25 +384,16 @@ function PurchaseFormPage() {
                             </Form.Item>
                           </Col>
                         )}
-                        <Col span={2} style={{ textAlign: 'right', paddingTop: 22 }}>
-                          <Button
-                            type="text"
-                            aria-label="Remove line"
-                            icon={<Trash2 size={16} />}
-                            disabled={fields.length === 1}
-                            onClick={() => remove(name)}
-                          />
-                        </Col>
                       </Row>
 
-                      <Row gutter={12} align="middle" style={{ marginTop: 8 }}>
-                        <Col span={4}>
+                      <Row gutter={12} align="middle">
+                        <Col xs={12} sm={6} md={4}>
                           <Form.Item
                             {...rest}
                             name={[name, 'quantity']}
                             label="Qty"
                             rules={stock ? [{ required: true, message: 'Qty' }] : []}
-                            style={{ marginBottom: 0 }}
+                            style={{ marginBottom: 8 }}
                           >
                             <InputNumber
                               min={stock ? 1 : 0}
@@ -386,7 +402,7 @@ function PurchaseFormPage() {
                             />
                           </Form.Item>
                         </Col>
-                        <Col span={5}>
+                        <Col xs={12} sm={6} md={5}>
                           <Form.Item
                             {...rest}
                             name={[name, 'amount']}
@@ -403,7 +419,7 @@ function PurchaseFormPage() {
                             />
                           </Form.Item>
                         </Col>
-                        <Col span={11}>
+                        <Col xs={24} sm={12} md={11}>
                           <Form.Item
                             {...rest}
                             name={[name, 'taxes']}
@@ -419,7 +435,7 @@ function PurchaseFormPage() {
                             />
                           </Form.Item>
                         </Col>
-                        <Col span={4} style={{ textAlign: 'right', paddingTop: 22 }}>
+                        <Col xs={24} sm={24} md={4} className="docline-total">
                           <div className="text-tertiary" style={{ fontSize: 'var(--font-size-xs)' }}>
                             Line total
                           </div>

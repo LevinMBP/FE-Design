@@ -57,7 +57,7 @@ function TotalsFooter({ form, taxes }: Props) {
     { value: '', label: 'No tax' },
     ...taxes.map((t) => ({
       value: t.id,
-      label: `${t.name} ${t.rate}%${t.computation === 'inclusive' ? ' incl.' : ''}`,
+      label: `${t.name} ${t.rate}%`,
     })),
   ]
 
@@ -123,13 +123,7 @@ function TotalsFooter({ form, taxes }: Props) {
         )}
         <TotalRow label="Gross (before tax)" value={peso(totals.gross)} />
         <TotalRow
-          label={
-            hasTax
-              ? `Tax amount · ${tax!.name} ${tax!.rate}%${
-                  tax!.computation === 'inclusive' ? ' (incl.)' : ''
-                }`
-              : 'Tax amount'
-          }
+          label={hasTax ? `Tax amount · ${tax!.name} ${tax!.rate}%` : 'Tax amount'}
           value={peso(totals.taxAmount)}
         />
         <TotalRow label="Final total" value={peso(totals.total)} strong />
