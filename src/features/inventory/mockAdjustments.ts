@@ -8,6 +8,7 @@ import {
 import { recordMovement } from './mockMovements'
 import { currentAvgCost, fifoCostToIssue } from './mockStockMovements'
 import { getAudit, markAuditAdjusted } from './mockAudits'
+import { listLocations } from './mockLocations'
 import { postAdjustmentEntry } from '../accounting/autoPost'
 import type {
   Adjustment,
@@ -18,14 +19,15 @@ import type {
 
 /**
  * Stock adjustments — the only path that corrects on-hand outside the normal
- * purchase/sale/manufacturing flows. Each line targets a counted quantity; the
- * delta against the CURRENT authoritative on-hand becomes a stock movement:
- * a surplus adds a FIFO lot (valued at the item's current average cost), a
- * shortage issues stock at FIFO cost. The net inventory value change is booked
- * once via `postAdjustmentEntry`, so the subledger and the Inventory control
- * account stay reconciled. All lines are validated up front (all-or-nothing).
- * Fast-tracking from an audit just pre-fills the counted quantities and links
- * the two records. In-memory; resets on reload.
+ * purchase/sale/manufacturing flows. The document's `itemType` says what every
+ * line is (product or material) — lines carry only an item id and a signed
+ * `delta` applied against the CURRENT authoritative on-hand: an addition adds
+ * a FIFO lot (valued at the item's current average cost), a deduction issues
+ * stock at FIFO cost. The net inventory value change is booked once via
+ * `postAdjustmentEntry`, so the subledger and the Inventory control account
+ * stay reconciled. All lines are validated up front (all-or-nothing).
+ * Fast-tracking from an audit pre-fills the variance deltas and links the two
+ * records. In-memory; resets on reload.
  */
 
 const uid = () => `adj_${crypto.randomUUID().slice(0, 8)}`
@@ -66,35 +68,44 @@ export function createAdjustment(input: NewAdjustment): Adjustment {
     throw new Error('Add at least one item to adjust.')
   }
 
-  // Validate + compute deltas against CURRENT on-hand before mutating anything.
+  const location = listLocations().find((l) => l.id === input.locationId)
+  if (!location) throw new Error('Select a valid inventory location.')
+
+  if (input.reason === 'other' && !input.otherReason?.trim()) {
+    throw new Error('Describe the reason when "Other" is selected.')
+  }
+
+  // Validate + apply deltas against CURRENT on-hand before mutating anything.
+  // Every line is the document's itemType — the header is the discriminator.
   const seen = new Set<string>()
   const prepared: PreparedLine[] = []
   for (const l of usable) {
-    const key = `${l.kind}:${l.itemId}`
-    if (seen.has(key)) {
+    if (seen.has(l.itemId)) {
       throw new Error('Each item can only be adjusted once per document.')
     }
-    seen.add(key)
+    seen.add(l.itemId)
 
-    const ref = getStockItemRef(l.kind, l.itemId)
+    const ref = getStockItemRef(input.itemType, l.itemId)
     if (!ref) throw new Error('A selected item no longer exists.')
-    if (l.countedQty < 0) {
-      throw new Error(`Counted quantity for ${ref.name} cannot be negative.`)
+    const delta = round2(l.delta)
+    if (Math.abs(delta) <= 0.0005) {
+      throw new Error(`Adjustment amount for ${ref.name} must be greater than zero.`)
+    }
+    const countedQty = round2(ref.quantity + delta)
+    if (countedQty < 0) {
+      throw new Error(
+        `Deducting ${-delta} would take ${ref.name} below zero (on hand: ${ref.quantity}).`,
+      )
     }
     prepared.push({
-      kind: l.kind,
+      kind: input.itemType,
       itemId: l.itemId,
       itemName: ref.name,
       unit: ref.unit,
       previousQty: ref.quantity,
-      countedQty: l.countedQty,
-      delta: round2(l.countedQty - ref.quantity),
+      countedQty,
+      delta,
     })
-  }
-
-  const effective = prepared.filter((p) => Math.abs(p.delta) > 0.0005)
-  if (effective.length === 0) {
-    throw new Error('No changes to apply — counted quantities match the system.')
   }
 
   const reference = `ADJ-${pad3(++adjNo)}`
@@ -102,7 +113,7 @@ export function createAdjustment(input: NewAdjustment): Adjustment {
   let inValue = 0
   let outValue = 0
 
-  for (const p of effective) {
+  for (const p of prepared) {
     let unitCost: number
     let value: number
     if (p.delta > 0) {
@@ -116,7 +127,7 @@ export function createAdjustment(input: NewAdjustment): Adjustment {
         date: input.date,
         source: 'Adjustment',
         reference,
-        location: 'MAIN WAREHOUSE',
+        location: location.name,
         direction: 'in',
         quantity: p.delta,
         unitCost,
@@ -133,7 +144,7 @@ export function createAdjustment(input: NewAdjustment): Adjustment {
         date: input.date,
         source: 'Adjustment',
         reference,
-        location: 'MAIN WAREHOUSE',
+        location: location.name,
         direction: 'out',
         quantity: outQty,
         unitCost: 0,
@@ -164,7 +175,11 @@ export function createAdjustment(input: NewAdjustment): Adjustment {
     id: uid(),
     reference,
     date: input.date,
+    itemType: input.itemType,
+    locationId: location.id,
+    location: location.name,
     reason: input.reason,
+    otherReason: input.reason === 'other' ? input.otherReason?.trim() : undefined,
     note: input.note.trim(),
     auditId: input.auditId,
     auditRef: audit?.reference,

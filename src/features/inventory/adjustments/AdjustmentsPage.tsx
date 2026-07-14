@@ -70,9 +70,22 @@ const columns: ColumnsType<Adjustment> = [
     defaultSortOrder: 'descend',
   },
   {
+    title: 'Type',
+    dataIndex: 'itemType',
+    render: (t: Adjustment['itemType']) => (t === 'product' ? 'Product' : 'Material'),
+  },
+  { title: 'Location', dataIndex: 'location', render: (v: string) => v || '—' },
+  {
     title: 'Reason',
     dataIndex: 'reason',
-    render: (r: Adjustment['reason']) => ADJUSTMENT_REASON_LABELS[r],
+    render: (r: Adjustment['reason'], a: Adjustment) => (
+      <span>
+        {ADJUSTMENT_REASON_LABELS[r]}
+        {r === 'other' && a.otherReason && (
+          <span style={{ color: 'var(--text-muted)' }}> — {a.otherReason}</span>
+        )}
+      </span>
+    ),
   },
   {
     title: 'Items',

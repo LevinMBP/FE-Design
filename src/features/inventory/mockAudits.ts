@@ -1,4 +1,5 @@
 import { getStockItemRef } from './mockInventory'
+import { listLocations } from './mockLocations'
 import type { Audit, AuditLine, NewAudit } from './types'
 
 /**
@@ -30,22 +31,25 @@ export function createAudit(input: NewAudit): Audit {
     throw new Error('Add at least one item to count.')
   }
 
+  const location = listLocations().find((l) => l.id === input.locationId)
+  if (!location) throw new Error('Select a valid inventory location.')
+
+  // Every line is the document's itemType — the header is the discriminator.
   const seen = new Set<string>()
   const lines: AuditLine[] = []
   for (const l of usable) {
-    const key = `${l.kind}:${l.itemId}`
-    if (seen.has(key)) {
+    if (seen.has(l.itemId)) {
       throw new Error('Each item can only be counted once per audit.')
     }
-    seen.add(key)
+    seen.add(l.itemId)
 
-    const ref = getStockItemRef(l.kind, l.itemId)
+    const ref = getStockItemRef(input.itemType, l.itemId)
     if (!ref) throw new Error('A selected item no longer exists.')
     if (l.countedQty < 0) {
       throw new Error(`Counted quantity for ${ref.name} cannot be negative.`)
     }
     lines.push({
-      kind: l.kind,
+      kind: input.itemType,
       itemId: l.itemId,
       itemName: ref.name,
       unit: ref.unit,
@@ -60,7 +64,9 @@ export function createAudit(input: NewAudit): Audit {
     id: uid(),
     reference: `AUD-${pad3(++audNo)}`,
     date: input.date,
-    location: input.location,
+    itemType: input.itemType,
+    locationId: location.id,
+    location: location.name,
     note: input.note.trim(),
     lines,
     status: hasVariance ? 'open' : 'balanced',

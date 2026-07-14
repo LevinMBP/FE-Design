@@ -27,6 +27,11 @@ const columns: ColumnsType<Audit> = [
     sorter: (a, b) => a.date.localeCompare(b.date),
     defaultSortOrder: 'descend',
   },
+  {
+    title: 'Type',
+    dataIndex: 'itemType',
+    render: (t: Audit['itemType']) => (t === 'product' ? 'Product' : 'Material'),
+  },
   { title: 'Location', dataIndex: 'location', render: (v: string) => v || '—' },
   {
     title: 'Items',

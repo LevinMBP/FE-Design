@@ -127,6 +127,11 @@ function AuditDetailPage() {
         style={{ marginBottom: 16 }}
         items={[
           { key: 'date', label: 'Date', children: audit.date },
+          {
+            key: 'type',
+            label: 'Audit type',
+            children: audit.itemType === 'product' ? 'Product' : 'Material',
+          },
           { key: 'location', label: 'Location', children: audit.location || '—' },
           { key: 'items', label: 'Items counted', children: audit.lines.length },
           ...(audit.note

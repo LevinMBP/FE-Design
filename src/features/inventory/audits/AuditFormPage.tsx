@@ -20,26 +20,35 @@ import {
   useGetLocationsQuery,
   useGetStockItemsQuery,
 } from '../inventoryApi'
-import type { NewAuditLine, StockItemKind } from '../types'
+import type { StockItemKind } from '../types'
 import './audits.css'
 
 interface LineValues {
-  item?: string // "kind:id"
+  itemId?: string
   countedQty?: number
 }
 
 interface FormValues {
   date: Dayjs
-  location: string
+  itemType: StockItemKind
+  locationId: string
   note: string
   lines: LineValues[]
 }
 
+const ITEM_TYPE_OPTIONS = [
+  { value: 'material', label: 'Material' },
+  { value: 'product', label: 'Product' },
+]
+
 /**
- * Record a physical stock count. Each line snapshots the item's current system
- * on-hand and captures what was counted; the variance is shown live. Saving
- * stores the audit but changes NO stock — reconciling a variance is a separate
- * Adjustment (which can be fast-tracked from the audit afterwards).
+ * Record a physical stock count. The document's item type (material/product)
+ * scopes the whole count — the item picker only offers that kind, and the
+ * saved lines all carry it. Selecting an item snapshots its system on-hand as
+ * the expected quantity and pre-fills the counted quantity with it (override
+ * where the shelf disagrees); the variance is shown live. Saving stores the
+ * audit but changes NO stock — reconciling a variance is a separate Adjustment
+ * (which can be fast-tracked from the audit afterwards).
  */
 function AuditFormPage() {
   const navigate = useNavigate()
@@ -49,35 +58,40 @@ function AuditFormPage() {
   const { data: locations } = useGetLocationsQuery()
   const [addAudit, { isLoading }] = useAddAuditMutation()
   const lineValues = Form.useWatch('lines', form) ?? []
+  const itemType: StockItemKind = Form.useWatch('itemType', form) ?? 'material'
 
   const locationOptions = (locations ?? [])
     .filter((l) => l.status === 'active')
-    .map((l) => ({ value: l.name, label: l.code ? `${l.name} (${l.code})` : l.name }))
+    .map((l) => ({ value: l.id, label: l.code ? `${l.name} (${l.code})` : l.name }))
 
   useEffect(() => {
-    if (!form.getFieldValue('location') && locationOptions.length > 0) {
-      form.setFieldValue('location', locationOptions[0].value)
+    if (!form.getFieldValue('locationId') && locationOptions.length > 0) {
+      form.setFieldValue('locationId', locationOptions[0].value)
     }
   }, [form, locationOptions])
 
-  // Combined picker keyed by "kind:id", plus lookups for on-hand and unit.
-  const { itemOptions, byKey } = useMemo(() => {
-    const byKey = new Map<string, { onHand: number; unit: string }>()
-    const itemOptions = (stockItems ?? []).map((s) => {
-      const value = `${s.kind}:${s.id}`
-      byKey.set(value, { onHand: s.onHand, unit: s.unit })
-      return { value, label: `${s.name} (${s.sku}) · ${s.kind}` }
-    })
-    return { itemOptions, byKey }
-  }, [stockItems])
+  // Picker restricted to the document's item type, plus on-hand/unit lookups.
+  const { itemOptions, byId } = useMemo(() => {
+    const byId = new Map<string, { onHand: number; unit: string }>()
+    const itemOptions = (stockItems ?? [])
+      .filter((s) => s.kind === itemType)
+      .map((s) => {
+        byId.set(s.id, { onHand: s.onHand, unit: s.unit })
+        return { value: s.id, label: `${s.name} (${s.sku})` }
+      })
+    return { itemOptions, byId }
+  }, [stockItems, itemType])
+
+  // Auto-populate: counted starts at the expected (system) qty, overridable.
+  const onItemSelected = (lineIdx: number, itemId: string) => {
+    const meta = byId.get(itemId)
+    form.setFieldValue(['lines', lineIdx, 'countedQty'], meta?.onHand)
+  }
 
   const onFinish = async (values: FormValues) => {
-    const lines: NewAuditLine[] = []
-    for (const l of values.lines ?? []) {
-      if (!l?.item || l.countedQty == null) continue
-      const [kind, id] = l.item.split(':')
-      lines.push({ kind: kind as StockItemKind, itemId: id, countedQty: l.countedQty })
-    }
+    const lines = (values.lines ?? [])
+      .filter((l) => l?.itemId && l.countedQty != null)
+      .map((l) => ({ itemId: l.itemId!, countedQty: l.countedQty! }))
     if (lines.length === 0) {
       message.error('Add at least one item with a counted quantity.')
       return
@@ -86,7 +100,8 @@ function AuditFormPage() {
     try {
       const audit = await addAudit({
         date: values.date.format('YYYY-MM-DD'),
-        location: values.location?.trim() || '—',
+        itemType: values.itemType,
+        locationId: values.locationId,
         note: values.note ?? '',
         lines,
       }).unwrap()
@@ -103,9 +118,10 @@ function AuditFormPage() {
         <div>
           <h1>New audit</h1>
           <p>
-            Count what's physically on hand. We snapshot the system quantity and
-            show the variance — saving records the count only, it doesn't change
-            stock. Reconcile any variances afterwards with an adjustment.
+            Count what's physically on hand. We snapshot the system quantity as
+            the expected count and pre-fill the counted quantity — override it
+            where the shelf disagrees. Saving records the count only, it doesn't
+            change stock. Reconcile any variances afterwards with an adjustment.
           </p>
         </div>
       </div>
@@ -115,25 +131,46 @@ function AuditFormPage() {
           form={form}
           layout="vertical"
           requiredMark
-          initialValues={{ date: dayjs(), note: '', lines: [{}] }}
+          initialValues={{ date: dayjs(), itemType: 'material', note: '', lines: [{}] }}
           onFinish={onFinish}
         >
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 name="date"
-                label="Count date"
+                label="Date"
                 rules={[{ required: true, message: 'Date is required' }]}
               >
                 <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="location" label="Location">
+              <Form.Item
+                name="locationId"
+                label="Inventory location"
+                tooltip="Location where the audit will be performed"
+                rules={[{ required: true, message: 'Pick a location' }]}
+              >
                 <Select
                   placeholder="Where the count happened"
                   options={locationOptions}
                   notFoundContent="No active locations — add one under Locations."
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="itemType"
+                label="Audit type"
+                tooltip="What this count covers — the item list below follows it"
+                rules={[{ required: true }]}
+              >
+                <Select
+                  options={ITEM_TYPE_OPTIONS}
+                  onChange={() => form.setFieldValue('lines', [{}])}
                 />
               </Form.Item>
             </Col>
@@ -149,8 +186,8 @@ function AuditFormPage() {
             {(fields, { add, remove }) => (
               <>
                 {fields.map(({ key, name, ...rest }) => {
-                  const selected = lineValues[name]?.item
-                  const meta = selected ? byKey.get(selected) : undefined
+                  const selected = lineValues[name]?.itemId
+                  const meta = selected ? byId.get(selected) : undefined
                   const counted = lineValues[name]?.countedQty
                   const variance =
                     meta && counted != null
@@ -161,22 +198,23 @@ function AuditFormPage() {
                       <Col flex="auto">
                         <Form.Item
                           {...rest}
-                          name={[name, 'item']}
+                          name={[name, 'itemId']}
                           style={{ marginBottom: 0 }}
                           rules={[{ required: true, message: 'Select an item' }]}
                         >
                           <Select
                             showSearch
                             optionFilterProp="label"
-                            placeholder="Material or product"
+                            placeholder={itemType === 'material' ? 'Material' : 'Product'}
                             loading={itemsLoading}
                             options={itemOptions}
+                            onChange={(v: string) => onItemSelected(name, v)}
                           />
                         </Form.Item>
                         <div className="audit-line-meta">
                           {meta ? (
                             <>
-                              <span>System: <strong>{meta.onHand}</strong> {meta.unit}</span>
+                              <span>Expected: <strong>{meta.onHand}</strong> {meta.unit}</span>
                               {variance != null && variance !== 0 && (
                                 <Tag color={variance > 0 ? 'success' : 'error'} style={{ marginInlineStart: 8 }}>
                                   {variance > 0 ? `+${variance}` : variance} variance
@@ -187,7 +225,7 @@ function AuditFormPage() {
                               )}
                             </>
                           ) : (
-                            <span>Pick an item to see its system quantity.</span>
+                            <span>Pick an item to snapshot its expected quantity.</span>
                           )}
                         </div>
                       </Col>

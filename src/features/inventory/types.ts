@@ -431,19 +431,19 @@ export interface NewSale {
 
 /** Why an adjustment was made — drives nothing in the books but records intent. */
 export type AdjustmentReason =
-  | 'count'
   | 'damage'
-  | 'loss'
-  | 'found'
-  | 'correction'
+  | 'shrinkage'
+  | 'count_correction'
+  | 'return_to_supplier'
+  | 'production_correction'
   | 'other'
 
 export const ADJUSTMENT_REASON_LABELS: Record<AdjustmentReason, string> = {
-  count: 'Count correction',
-  damage: 'Damage / spoilage',
-  loss: 'Loss / theft',
-  found: 'Found stock',
-  correction: 'Data correction',
+  damage: 'Damage',
+  shrinkage: 'Shrinkage',
+  count_correction: 'Stock Count Correction',
+  return_to_supplier: 'Return to Supplier',
+  production_correction: 'Production Correction',
   other: 'Other',
 }
 
@@ -475,7 +475,10 @@ export interface Audit {
   id: string
   reference: string // AUD-001
   date: string
-  location: string
+  /** What the whole document counts — every line is this kind of item. */
+  itemType: StockItemKind
+  locationId: string
+  location: string // resolved location name, for display
   note: string
   lines: AuditLine[]
   status: AuditStatus
@@ -483,15 +486,16 @@ export interface Audit {
   adjustmentRef?: string
 }
 
+/** Lines carry only the item id — their kind is the document's `itemType`. */
 export interface NewAuditLine {
-  kind: StockItemKind
   itemId: string
   countedQty: number
 }
 
 export interface NewAudit {
   date: string
-  location: string
+  itemType: StockItemKind
+  locationId: string
   note: string
   lines: NewAuditLine[]
 }
@@ -514,7 +518,12 @@ export interface Adjustment {
   id: string
   reference: string // ADJ-001
   date: string
+  /** What the whole document adjusts — every line is this kind of item. */
+  itemType: StockItemKind
+  locationId: string
+  location: string // resolved location name, for display
   reason: AdjustmentReason
+  otherReason?: string // free text, required when reason is 'other'
   note: string
   auditId?: string // set when fast-tracked from an audit
   auditRef?: string
@@ -524,15 +533,22 @@ export interface Adjustment {
   netValue: number // inValue − outValue (signed change to the Inventory account)
 }
 
+/**
+ * Lines carry only the item id — their kind is the document's `itemType`.
+ * `delta` is the signed quantity change (addition > 0, deduction < 0); the
+ * backend applies it against the current on-hand.
+ */
 export interface NewAdjustmentLine {
-  kind: StockItemKind
   itemId: string
-  countedQty: number
+  delta: number
 }
 
 export interface NewAdjustment {
   date: string
+  itemType: StockItemKind
+  locationId: string
   reason: AdjustmentReason
+  otherReason?: string
   note: string
   auditId?: string
   lines: NewAdjustmentLine[]
