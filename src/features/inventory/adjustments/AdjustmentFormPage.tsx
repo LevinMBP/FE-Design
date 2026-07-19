@@ -6,7 +6,6 @@ import {
   Button,
   Col,
   DatePicker,
-  Divider,
   Form,
   Input,
   InputNumber,
@@ -204,68 +203,74 @@ function AdjustmentFormPage() {
           }}
           onFinish={onFinish}
         >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="date"
-                label="Date"
-                rules={[{ required: true, message: 'Date is required' }]}
-              >
-                <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="locationId"
-                label="Inventory location"
-                tooltip="Location the adjusted stock belongs to"
-                rules={[{ required: true, message: 'Pick a location' }]}
-              >
-                <Select
-                  placeholder="Where stock is adjusted"
-                  options={locationOptions}
-                  notFoundContent="No active locations — add one under Locations."
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+          <div className="form-section">
+            <div className="form-section__title">Adjustment details</div>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="date"
+                  label="Date"
+                  rules={[{ required: true, message: 'Date is required' }]}
+                >
+                  <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="locationId"
+                  label="Inventory location"
+                  tooltip="Location the adjusted stock belongs to"
+                  rules={[{ required: true, message: 'Pick a location' }]}
+                >
+                  <Select
+                    placeholder="Where stock is adjusted"
+                    options={locationOptions}
+                    notFoundContent="No active locations — add one under Locations."
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="itemType"
-                label="Item type"
-                tooltip="What this adjustment covers — the item list below follows it"
-                rules={[{ required: true }]}
-              >
-                <Select
-                  options={ITEM_TYPE_OPTIONS}
-                  onChange={() => form.setFieldValue('lines', [{ adjustmentType: 'minus' }])}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="reason"
-                label="Reason"
-                rules={[{ required: true, message: 'Pick a reason' }]}
-              >
-                <Select options={ADJUSTMENT_REASON_OPTIONS} />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="itemType"
+                  label="Item type"
+                  tooltip="What this adjustment covers — the item list below follows it"
+                  rules={[{ required: true }]}
+                  style={{ marginBottom: reason === 'other' ? undefined : 0 }}
+                >
+                  <Select
+                    options={ITEM_TYPE_OPTIONS}
+                    onChange={() => form.setFieldValue('lines', [{ adjustmentType: 'minus' }])}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="reason"
+                  label="Reason"
+                  rules={[{ required: true, message: 'Pick a reason' }]}
+                  style={{ marginBottom: reason === 'other' ? undefined : 0 }}
+                >
+                  <Select options={ADJUSTMENT_REASON_OPTIONS} />
+                </Form.Item>
+              </Col>
+            </Row>
 
-          {reason === 'other' && (
-            <Form.Item
-              name="otherReason"
-              label="Other reason"
-              rules={[{ required: true, message: 'Describe the reason' }]}
-            >
-              <Input.TextArea rows={2} placeholder="What prompted this adjustment?" />
-            </Form.Item>
-          )}
+            {reason === 'other' && (
+              <Form.Item
+                name="otherReason"
+                label="Other reason"
+                rules={[{ required: true, message: 'Describe the reason' }]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input.TextArea rows={2} placeholder="What prompted this adjustment?" />
+              </Form.Item>
+            )}
+          </div>
 
-          <Divider style={{ margin: '4px 0 16px' }}>Adjustment items</Divider>
+          <div className="form-section__title">Adjustment items</div>
 
           <Form.List name="lines">
             {(fields, { add, remove }) => (
@@ -279,7 +284,7 @@ function AdjustmentFormPage() {
                       ? Math.round((meta.onHand + delta) * 100) / 100
                       : null
                   return (
-                    <div key={key} className="adj-line">
+                    <div key={key} className="line-card line-card--row">
                       <Row gutter={12} align="top">
                         <Col flex="auto">
                           <Form.Item
@@ -299,16 +304,16 @@ function AdjustmentFormPage() {
                         </Col>
                         <Col flex="32px">
                           <Button
+                            type="text"
+                            danger
                             aria-label="Remove item"
                             icon={<Trash2 size={16} />}
                             disabled={fields.length === 1}
                             onClick={() => remove(name)}
-                            danger
-                            shape="circle"
                           />
                         </Col>
                       </Row>
-                      <Row gutter={12} align="bottom">
+                      <Row gutter={12} align="top">
                         <Col>
                           <Form.Item
                             {...rest}
@@ -359,7 +364,8 @@ function AdjustmentFormPage() {
                           </Form.Item>
                         </Col>
                         <Col flex="auto">
-                          <div className="audit-line-meta" style={{ textAlign: 'right' }}>
+                          {/* Offset past the sibling labels so it sits level with the inputs. */}
+                          <div className="audit-line-meta" style={{ textAlign: 'right', paddingTop: 37 }}>
                             {meta ? (
                               <span>
                                 Before: <strong>{meta.onHand}</strong> {meta.unit}
@@ -393,9 +399,11 @@ function AdjustmentFormPage() {
             )}
           </Form.List>
 
-          <div className={`adj-net ${netClass}`}>
-            <span style={{ color: 'var(--text-muted)' }}>Estimated net change</span>
-            <strong>{peso(netEstimate)}</strong>
+          <div className={`form-totals ${netClass}`}>
+            <div className="form-totals__row is-total">
+              <span>Estimated net change</span>
+              <strong>{peso(netEstimate)}</strong>
+            </div>
           </div>
 
           <div className="form-actions">

@@ -55,7 +55,11 @@ function QuotationsPage() {
     {
       title: 'Reference',
       dataIndex: 'reference',
-      render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span>,
+      render: (v: string, q) => (
+        <Link to={`/sales/quotations/${q.id}`} style={{ fontWeight: 600 }}>
+          {v}
+        </Link>
+      ),
     },
     {
       title: 'Date',
@@ -82,6 +86,20 @@ function QuotationsPage() {
       render: (s: QuotationStatus) => {
         const meta = QUOTATION_STATUS[s]
         return <Tag color={meta.color}>{meta.label}</Tag>
+      },
+    },
+    {
+      title: 'Signatures',
+      render: (_, q) => {
+        const prepared = !!q.preparedBy?.signature
+        const approved = !!q.approvedBy?.signature
+        if (!prepared && !approved) return '—'
+        return (
+          <Space size={4} wrap>
+            {prepared && <Tag>Prepared</Tag>}
+            {approved && <Tag color="green">Approved</Tag>}
+          </Space>
+        )
       },
     },
     {

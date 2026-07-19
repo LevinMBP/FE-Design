@@ -3,10 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import {
   App,
   Button,
-  Card,
   Col,
   DatePicker,
-  Divider,
   Form,
   Row,
   Select,
@@ -142,33 +140,38 @@ function OpeningBalancePage() {
           }}
           onFinish={onFinish}
         >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="date"
-                label="Date"
-                rules={[{ required: true, message: 'Date is required' }]}
-              >
-                <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="location"
-                label="Location"
-                tooltip="Where this stock physically sits. Applies to every item in this document."
-                rules={[{ required: true, message: 'Location is required' }]}
-              >
-                <Select
-                  placeholder="Select a location"
-                  options={locationOptions}
-                  notFoundContent="No active locations — add one under Locations."
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+          <div className="form-section">
+            <div className="form-section__title">Details</div>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="date"
+                  label="Date"
+                  rules={[{ required: true, message: 'Date is required' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="location"
+                  label="Location"
+                  tooltip="Where this stock physically sits. Applies to every item in this document."
+                  rules={[{ required: true, message: 'Location is required' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <Select
+                    placeholder="Select a location"
+                    options={locationOptions}
+                    notFoundContent="No active locations — add one under Locations."
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
 
-          <Divider style={{ margin: '4px 0 16px' }}>Items</Divider>
+          <div className="form-section__title">Items</div>
 
           <Form.List name="lines">
             {(fields, { add, remove }) => (
@@ -177,12 +180,7 @@ function OpeningBalancePage() {
                   const selected = lineValues[name]?.item
                   const unitLabel = (selected && unitOf.get(selected)) || 'units'
                   return (
-                    <Card
-                      key={key}
-                      size="small"
-                      style={{ marginBottom: 12 }}
-                      styles={{ body: { paddingBottom: 4 } }}
-                    >
+                    <div key={key} className="line-card">
                       <Row gutter={12} align="middle" style={{ marginBottom: 8 }}>
                         <Col flex="auto">
                           <Form.Item
@@ -202,12 +200,12 @@ function OpeningBalancePage() {
                         </Col>
                         <Col flex="32px">
                           <Button
+                            type="text"
+                            danger
                             aria-label="Remove item"
                             icon={<Trash2 size={16} />}
                             disabled={fields.length === 1}
                             onClick={() => remove(name)}
-                            danger
-                            shape="circle"
                           />
                         </Col>
                       </Row>
@@ -218,7 +216,7 @@ function OpeningBalancePage() {
                         watchPath={['lines', name, 'lots']}
                         unitLabel={unitLabel}
                       />
-                    </Card>
+                    </div>
                   )
                 })}
                 <Button
@@ -233,20 +231,11 @@ function OpeningBalancePage() {
             )}
           </Form.List>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              margin: '18px 0',
-              fontSize: 16,
-            }}
-          >
-            <span style={{ marginRight: 12, color: 'var(--text-muted)' }}>
-              Opening inventory value
-            </span>
-            <strong style={{ fontVariantNumeric: 'tabular-nums' }}>
-              {peso(totalValue)}
-            </strong>
+          <div className="form-totals">
+            <div className="form-totals__row is-total">
+              <span>Opening inventory value</span>
+              <strong>{peso(totalValue)}</strong>
+            </div>
           </div>
 
           <div className="form-actions">

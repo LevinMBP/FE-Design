@@ -10,28 +10,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* One adjustment line: item picker on top, direction/amount/preview below. */
-.adj-line {
-  border: 1px solid var(--ant-color-border, rgba(128, 128, 128, 0.25));
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 10px;
-}
-
-/* Net change footer shared by the adjustment form + summaries. */
-.adj-net {
-  display: flex;
-  justify-content: flex-end;
-  align-items: baseline;
-  gap: 12px;
-  margin: 18px 0;
-  font-size: 16px;
-}
-
-.adj-net strong {
-  font-variant-numeric: tabular-nums;
-}
-
+/* Net-change colouring on the adjustment form's totals card. */
 .adj-net--up strong {
   color: var(--ant-color-success, #16a34a);
 }

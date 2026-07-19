@@ -5,7 +5,6 @@ import {
   Button,
   Checkbox,
   Col,
-  Divider,
   Form,
   Input,
   InputNumber,
@@ -182,7 +181,9 @@ function ProductFormPage() {
 
           {isManufactured && (
             <>
-              <Divider style={{ margin: '4px 0 12px' }}>Bill of materials</Divider>
+              <div className="form-section__title" style={{ marginTop: 4 }}>
+                Bill of materials
+              </div>
               <p className="form-note" style={{ marginTop: 0 }}>
                 Raw materials consumed to produce one unit. Manufacturing will
                 deduct these from stock.
@@ -192,47 +193,50 @@ function ProductFormPage() {
                 {(fields, { add, remove }) => (
                   <>
                     {fields.map(({ key, name: fname, ...rest }) => (
-                      <Row gutter={12} key={key} align="middle" style={{ marginBottom: 8 }}>
-                        <Col span={15}>
-                          <Form.Item
-                            {...rest}
-                            name={[fname, 'materialId']}
-                            rules={[{ required: true, message: 'Select a material' }]}
-                            style={{ marginBottom: 0 }}
-                          >
-                            <Select
-                              showSearch
-                              optionFilterProp="label"
-                              placeholder="Raw material"
-                              options={materialOptions}
+                      <div key={key} className="line-card line-card--row">
+                        <Row gutter={12} align="middle">
+                          <Col flex="auto">
+                            <Form.Item
+                              {...rest}
+                              name={[fname, 'materialId']}
+                              rules={[{ required: true, message: 'Select a material' }]}
+                              style={{ marginBottom: 0 }}
+                            >
+                              <Select
+                                showSearch
+                                optionFilterProp="label"
+                                placeholder="Raw material"
+                                options={materialOptions}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col flex="130px">
+                            <Form.Item
+                              {...rest}
+                              name={[fname, 'quantityPerUnit']}
+                              rules={[{ required: true, message: 'Qty' }]}
+                              style={{ marginBottom: 0 }}
+                            >
+                              <InputNumber
+                                min={0}
+                                step={1}
+                                placeholder="Qty / unit"
+                                style={{ width: '100%' }}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col flex="32px">
+                            <Button
+                              type="text"
+                              danger
+                              aria-label="Remove material"
+                              icon={<Trash2 size={16} />}
+                              disabled={fields.length === 1}
+                              onClick={() => remove(fname)}
                             />
-                          </Form.Item>
-                        </Col>
-                        <Col span={7}>
-                          <Form.Item
-                            {...rest}
-                            name={[fname, 'quantityPerUnit']}
-                            rules={[{ required: true, message: 'Qty' }]}
-                            style={{ marginBottom: 0 }}
-                          >
-                            <InputNumber
-                              min={0}
-                              step={1}
-                              placeholder="Qty / unit"
-                              style={{ width: '100%' }}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={2}>
-                          <Button
-                            type="text"
-                            aria-label="Remove material"
-                            icon={<Trash2 size={16} />}
-                            disabled={fields.length === 1}
-                            onClick={() => remove(fname)}
-                          />
-                        </Col>
-                      </Row>
+                          </Col>
+                        </Row>
+                      </div>
                     ))}
                     <Button
                       type="dashed"

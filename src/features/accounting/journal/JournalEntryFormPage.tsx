@@ -4,7 +4,6 @@ import {
   Button,
   Col,
   DatePicker,
-  Divider,
   Form,
   Input,
   InputNumber,
@@ -102,67 +101,80 @@ function JournalEntryFormPage() {
           initialValues={{ date: dayjs(), lines: [{}, {}] }}
           onFinish={onFinish}
         >
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                name="date"
-                label="Date"
-                rules={[{ required: true, message: 'Date is required' }]}
-              >
-                <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
-              </Form.Item>
-            </Col>
-            <Col span={16}>
-              <Form.Item name="memo" label="Memo">
-                <Input placeholder="What is this entry for?" />
-              </Form.Item>
-            </Col>
-          </Row>
+          <div className="form-section">
+            <div className="form-section__title">Entry details</div>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item
+                  name="date"
+                  label="Date"
+                  rules={[{ required: true, message: 'Date is required' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
+                </Form.Item>
+              </Col>
+              <Col span={16}>
+                <Form.Item name="memo" label="Memo" style={{ marginBottom: 0 }}>
+                  <Input placeholder="What is this entry for?" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
 
-          <Divider style={{ margin: '4px 0 16px' }}>Lines</Divider>
+          <div className="form-section__title">Lines</div>
 
           <Form.List name="lines">
             {(fields, { add, remove }) => (
               <>
                 {fields.map(({ key, name, ...rest }) => (
-                  <Row gutter={12} key={key} align="middle" style={{ marginBottom: 4 }}>
-                    <Col span={11}>
-                      <Form.Item
-                        {...rest}
-                        name={[name, 'accountId']}
-                        rules={[{ required: true, message: 'Select an account' }]}
-                      >
-                        <Select showSearch optionFilterProp="label" placeholder="Account" options={options} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={6}>
-                      <Form.Item {...rest} name={[name, 'debit']}>
-                        <InputNumber
-                          {...pesoInput}
-                          placeholder="Debit"
-                          onChange={(v) => onAmount(name, 'debit', v as number | null)}
+                  <div key={key} className="line-card line-card--row">
+                    <Row gutter={12} align="middle">
+                      <Col flex="auto">
+                        <Form.Item
+                          {...rest}
+                          name={[name, 'accountId']}
+                          rules={[{ required: true, message: 'Select an account' }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Select
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder="Account"
+                            options={options}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col flex="140px">
+                        <Form.Item {...rest} name={[name, 'debit']} style={{ marginBottom: 0 }}>
+                          <InputNumber
+                            {...pesoInput}
+                            placeholder="Debit"
+                            onChange={(v) => onAmount(name, 'debit', v as number | null)}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col flex="140px">
+                        <Form.Item {...rest} name={[name, 'credit']} style={{ marginBottom: 0 }}>
+                          <InputNumber
+                            {...pesoInput}
+                            placeholder="Credit"
+                            onChange={(v) => onAmount(name, 'credit', v as number | null)}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col flex="32px">
+                        <Button
+                          type="text"
+                          danger
+                          aria-label="Remove line"
+                          icon={<Trash2 size={16} />}
+                          disabled={fields.length <= 2}
+                          onClick={() => remove(name)}
                         />
-                      </Form.Item>
-                    </Col>
-                    <Col span={6}>
-                      <Form.Item {...rest} name={[name, 'credit']}>
-                        <InputNumber
-                          {...pesoInput}
-                          placeholder="Credit"
-                          onChange={(v) => onAmount(name, 'credit', v as number | null)}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={1}>
-                      <Button
-                        type="text"
-                        aria-label="Remove line"
-                        icon={<Trash2 size={16} />}
-                        disabled={fields.length <= 2}
-                        onClick={() => remove(name)}
-                      />
-                    </Col>
-                  </Row>
+                      </Col>
+                    </Row>
+                  </div>
                 ))}
                 <Button
                   type="dashed"
@@ -176,24 +188,24 @@ function JournalEntryFormPage() {
             )}
           </Form.List>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              gap: 20,
-              margin: '18px 0',
-            }}
-          >
-            <span style={{ color: 'var(--text-muted)' }}>
-              Debits <strong>{formatPeso(totalDebit)}</strong>
-            </span>
-            <span style={{ color: 'var(--text-muted)' }}>
-              Credits <strong>{formatPeso(totalCredit)}</strong>
-            </span>
-            <Tag color={balanced ? 'green' : 'red'}>
-              {balanced ? 'Balanced' : `Off by ${formatPeso(Math.abs(diff))}`}
-            </Tag>
+          <div className="form-totals">
+            <div className="form-totals__row">
+              <span>Debits</span>
+              <span>{formatPeso(totalDebit)}</span>
+            </div>
+            <div className="form-totals__row">
+              <span>Credits</span>
+              <span>{formatPeso(totalCredit)}</span>
+            </div>
+            <div className="form-totals__row is-total">
+              <span>Balance</span>
+              <Tag
+                color={balanced ? 'green' : 'red'}
+                style={{ marginInlineEnd: 0 }}
+              >
+                {balanced ? 'Balanced' : `Off by ${formatPeso(Math.abs(diff))}`}
+              </Tag>
+            </div>
           </div>
 
           <div className="form-actions">

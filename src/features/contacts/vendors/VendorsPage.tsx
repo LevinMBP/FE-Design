@@ -3,7 +3,7 @@ import { Button, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { Plus } from 'lucide-react'
 import { useGetVendorsQuery } from '../contactsApi'
-import { VENDOR_CATEGORIES, type Vendor } from '../types'
+import type { Vendor } from '../types'
 
 const columns: ColumnsType<Vendor> = [
   {
@@ -22,13 +22,6 @@ const columns: ColumnsType<Vendor> = [
         )}
       </div>
     ),
-  },
-  {
-    title: 'Category',
-    dataIndex: 'category',
-    filters: VENDOR_CATEGORIES.map((c) => ({ text: c, value: c })),
-    onFilter: (value, r) => r.category === value,
-    render: (category: string) => <Tag color="blue">{category}</Tag>,
   },
   { title: 'Email', dataIndex: 'email', render: (v: string) => v || '—' },
   { title: 'Contact Number', dataIndex: 'contactNumber', render: (v: string) => v || '—' },

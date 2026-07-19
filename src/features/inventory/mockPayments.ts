@@ -1,4 +1,4 @@
-import { applyPurchasePayment, getPurchase } from './mockPurchases'
+import { applyPurchasePayment, getPurchase, listPurchases } from './mockPurchases'
 import { listPaymentMethods } from '../finance/mockFinance'
 import { postVendorPaymentEntry } from '../accounting/autoPost'
 import { purchasePaymentStatus, type NewVendorPayment, type Payment } from './types'
@@ -71,3 +71,31 @@ export function recordVendorPayment(input: NewVendorPayment): Payment {
 
   return record
 }
+
+/**
+ * Seed: settle some of the seeded purchases so the list shows every payment
+ * status — PO-001 fully paid, PO-002 partially paid, the rest still open.
+ * Runs through `recordVendorPayment` so the payables and books stay in step.
+ */
+function seedPayments() {
+  const byRef = new Map(listPurchases().map((p) => [p.reference, p]))
+  const full = byRef.get('PO-001')
+  if (full) {
+    recordVendorPayment({
+      purchaseId: full.id,
+      date: '2026-03-20',
+      amount: full.netPayable,
+      paymentMethodId: 'pm_bdo',
+    })
+  }
+  const partial = byRef.get('PO-002')
+  if (partial) {
+    recordVendorPayment({
+      purchaseId: partial.id,
+      date: '2026-04-10',
+      amount: 800,
+      paymentMethodId: 'pm_gcash',
+    })
+  }
+}
+seedPayments()

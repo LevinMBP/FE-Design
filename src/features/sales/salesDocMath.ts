@@ -6,6 +6,7 @@ import type {
   InvoiceStatus,
   PaymentTerm,
   QuotationStatus,
+  TaxBreakdownRow,
 } from './types'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
@@ -17,41 +18,45 @@ export const peso = (v: number) =>
 export interface TotalsLine {
   quantity: number
   unitPrice: number
-  /** When true, unitPrice already contains the document tax. */
+  /** Taxes this line attracts (ids into the provided tax list). */
+  taxIds: string[]
+  /** When true, unitPrice already contains the line's taxes. */
   taxIncluded: boolean
 }
 
 /**
- * Compute a document's money breakdown with per-line tax treatment.
+ * Compute a document's money breakdown with per-line taxes.
  *
- * Each line is reduced to a *net* (tax-excluded) value: a tax-included line has
- * its tax carved out (price ÷ (1+rate)); an excluded line's price is the net and
- * tax is added on top. Discount applies to the net subtotal, and the tax is
- * scaled down by the same proportion so the books stay consistent.
+ * Each line carries its own tax selection (possibly several — e.g. 5% + 8%
+ * instead of a single 13%). The line is reduced to a *net* (tax-excluded)
+ * value: a tax-included line has its combined tax carved out
+ * (price ÷ (1+rate)); otherwise the price is the net and tax is added on top.
+ * Discount applies to the net subtotal, and every tax is scaled down by the
+ * same proportion so the books stay consistent.
  *
- * Returns: subtotal (net) → discount → gross (net after discount) → tax → total.
+ * Returns subtotal (net) → discount → gross → tax (with per-tax breakdown) → total.
  */
 export function computeTotals(
   lines: TotalsLine[],
   discountType: DiscountType,
   discountValue: number,
-  tax: Tax | undefined,
+  taxes: Tax[],
 ): DocTotals {
-  const rate = tax?.rate ?? 0
+  const taxById = new Map(taxes.map((t) => [t.id, t]))
+  const lineTaxes = (l: TotalsLine) =>
+    (l.taxIds ?? []).map((id) => taxById.get(id)).filter((t): t is Tax => !!t)
 
   let net = 0
-  let taxBeforeDiscount = 0
+  // Per-tax amounts before the discount scales them down.
+  const perTax = new Map<string, number>()
   for (const l of lines) {
     const amount = (l.quantity || 0) * (l.unitPrice || 0)
-    if (rate && l.taxIncluded) {
-      const lineNet = amount / (1 + rate / 100)
-      net += lineNet
-      taxBeforeDiscount += amount - lineNet
-    } else if (rate) {
-      net += amount
-      taxBeforeDiscount += amount * (rate / 100)
-    } else {
-      net += amount
+    const applied = lineTaxes(l)
+    const combinedRate = applied.reduce((s, t) => s + t.rate, 0) / 100
+    const lineNet = l.taxIncluded && combinedRate > 0 ? amount / (1 + combinedRate) : amount
+    net += lineNet
+    for (const t of applied) {
+      perTax.set(t.id, (perTax.get(t.id) ?? 0) + lineNet * (t.rate / 100))
     }
   }
 
@@ -65,10 +70,15 @@ export function computeTotals(
 
   const gross = round2(subtotal - discountAmount)
   const discountFraction = subtotal > 0 ? discountAmount / subtotal : 0
-  const taxAmount = round2(taxBeforeDiscount * (1 - discountFraction))
+
+  const taxBreakdown: TaxBreakdownRow[] = [...perTax.entries()].map(([id, amt]) => {
+    const t = taxById.get(id)!
+    return { label: `${t.name} ${t.rate}%`, amount: round2(amt * (1 - discountFraction)) }
+  })
+  const taxAmount = round2(taxBreakdown.reduce((s, r) => s + r.amount, 0))
   const total = round2(gross + taxAmount)
 
-  return { subtotal, discountAmount, gross, taxAmount, total }
+  return { subtotal, discountAmount, gross, taxAmount, total, taxBreakdown }
 }
 
 /** Net days for each payment term (0 = due immediately). */
@@ -83,12 +93,6 @@ const TERM_DAYS: Record<PaymentTerm, number> = {
 /** Due date = invoice date + the payment term's net days (ISO date). */
 export function dueDateFrom(term: PaymentTerm, date: string): string {
   return dayjs(date).add(TERM_DAYS[term] ?? 0, 'day').format('YYYY-MM-DD')
-}
-
-/** Display label captured on a document, e.g. "VAT 12%". */
-export function taxLabelOf(tax: Tax | undefined): string {
-  if (!tax || !tax.rate) return 'No tax'
-  return `${tax.name} ${tax.rate}%`
 }
 
 /* ---- Status display (label + Ant Design Tag color) ---- */

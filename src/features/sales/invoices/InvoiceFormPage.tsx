@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Alert, App, Button, Col, DatePicker, Divider, Form, Input, Row, Select } from 'antd'
+import { Alert, App, Button, Col, DatePicker, Form, Input, Row, Select } from 'antd'
 import dayjs from 'dayjs'
-import { useAddInvoiceMutation, useGetQuotationsQuery } from '../salesDocsApi'
+import {
+  useAddInvoiceMutation,
+  useGetInvoicesQuery,
+  useGetQuotationsQuery,
+} from '../salesDocsApi'
 import {
   buildLineInputs,
   stockShortages,
@@ -23,6 +27,16 @@ interface ConvertState {
 /** A quotation is "pullable" into an invoice once it's live (sent/accepted). */
 const isPullable = (q: Quotation) => q.status === 'sent' || q.status === 'accepted'
 
+/** Next reference the store will assign: one past the highest INV-NNNN-YY so far. */
+const nextInvoiceRef = (references: string[]) => {
+  const top = references.reduce((max, ref) => {
+    const n = Number(ref.match(/^INV-(\d+)/)?.[1])
+    return Number.isFinite(n) && n > max ? n : max
+  }, 0)
+  const yy = String(new Date().getFullYear()).slice(2)
+  return `INV-${String(top + 1).padStart(4, '0')}-${yy}`
+}
+
 function InvoiceFormPage() {
   const navigate = useNavigate()
   const { message } = App.useApp()
@@ -31,6 +45,7 @@ function InvoiceFormPage() {
 
   const { items, itemsLoading, itemMeta, customers, taxes } = useSalesFormData()
   const { data: quotations } = useGetQuotationsQuery()
+  const { data: invoices } = useGetInvoicesQuery()
   const [addInvoice, { isLoading }] = useAddInvoiceMutation()
   const [form] = Form.useForm()
   const submitStatus = useRef<'draft' | 'sent'>('sent')
@@ -52,7 +67,10 @@ function InvoiceFormPage() {
     [quotations],
   )
 
-  /** Copy a quotation's customer, lines, discount and tax onto the form. */
+  // The reference this invoice will get when saved, shown instead of a placeholder.
+  const invoiceRef = invoices ? nextInvoiceRef(invoices.map((i) => i.reference)) : ''
+
+  /** Copy a quotation's customer, lines, discount and taxes onto the form. */
   const applyQuote = (q: Quotation) => {
     form.setFieldsValue({
       customerId: q.customerId,
@@ -63,11 +81,11 @@ function InvoiceFormPage() {
         item: `${l.itemKind}:${l.itemId}`,
         quantity: l.quantity,
         unitPrice: l.unitPrice,
+        taxIds: [...l.taxIds],
         taxIncluded: l.taxIncluded,
       })),
       discountType: q.discountType,
       discountValue: q.discountValue,
-      taxId: q.taxId,
       notes: q.notes,
     })
   }
@@ -112,7 +130,6 @@ function InvoiceFormPage() {
         lines,
         discountType: values.discountType as 'amount' | 'percent',
         discountValue: (values.discountValue as number) ?? 0,
-        taxId: (values.taxId as string) ?? '',
         notes: (values.notes as string)?.trim() ?? '',
         status: submitStatus.current,
         quotationId,
@@ -147,10 +164,10 @@ function InvoiceFormPage() {
             deliveryReceipt: '',
             paymentTerm: 'Due on receipt',
             location: INVENTORY_LOCATIONS[0],
-            lines: [{ taxIncluded: false }],
+            lines: [{ taxIds: [], taxIncluded: false }],
             discountType: 'amount',
             discountValue: 0,
-            taxId: '',
+            docTaxIds: [],
             applyTaxAll: false,
           }}
           onFinish={onFinish}
@@ -175,15 +192,15 @@ function InvoiceFormPage() {
             </Form.Item>
           )}
 
-          <ContactFields form={form} customers={customers} />
+          <div className="form-section__title">Invoice details</div>
 
           <Row gutter={16}>
-            <Col span={8}>
+            <Col xs={24} sm={12} md={8}>
               <Form.Item label="Invoice number" tooltip="Assigned automatically on save.">
-                <Input disabled placeholder="Auto (INV-###)" />
+                <Input disabled value={invoiceRef} placeholder="Auto (INV-###)" />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={12} md={8}>
               <Form.Item
                 name="date"
                 label="Invoice date"
@@ -192,7 +209,7 @@ function InvoiceFormPage() {
                 <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={12} md={8}>
               <Form.Item
                 name="deliveryReceipt"
                 label="Delivery receipt no."
@@ -204,7 +221,7 @@ function InvoiceFormPage() {
           </Row>
 
           <Row gutter={16}>
-            <Col span={8}>
+            <Col xs={24} sm={12} md={8}>
               <Form.Item
                 name="paymentTerm"
                 label="Payment term"
@@ -213,14 +230,14 @@ function InvoiceFormPage() {
                 <Select options={PAYMENT_TERMS.map((t) => ({ value: t, label: t }))} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={12} md={8}>
               <Form.Item name="location" label="Inventory location" rules={[{ required: true }]}>
                 <Select
                   options={INVENTORY_LOCATIONS.map((l) => ({ value: l, label: l }))}
                 />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={12} md={8}>
               <Form.Item label="Due date" tooltip="Derived from the invoice date and payment term.">
                 <Input
                   disabled
@@ -230,13 +247,22 @@ function InvoiceFormPage() {
             </Col>
           </Row>
 
-          <Divider style={{ margin: '4px 0 16px' }}>Items</Divider>
+          <div className="form-section__title" style={{ margin: '4px 0 16px' }}>
+            Customer details
+          </div>
+
+          <ContactFields form={form} customers={customers} />
+
+          <div className="form-section__title" style={{ margin: '4px 0 16px' }}>
+            Items
+          </div>
 
           <LineItemsField
             form={form}
             items={items}
             itemsLoading={itemsLoading}
             itemMeta={itemMeta}
+            taxes={taxes}
           />
 
           {shortages.length > 0 && (

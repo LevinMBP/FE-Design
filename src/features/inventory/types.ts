@@ -317,10 +317,12 @@ export interface Purchase {
   vendorName: string
   note: string
   lines: PurchaseLine[]
-  subtotal: number // goods/services value (also the amount capitalised/expensed)
-  taxAmount: number // Σ added-on taxes across lines
+  subtotal: number // goods/services value before discount
+  discountAmount: number // document discount taken off the subtotal
+  gross: number // subtotal − discount (the amount capitalised/expensed)
+  taxAmount: number // Σ added-on taxes across lines (after discount scaling)
   taxSummary: PurchaseTaxSummary[] // taxes grouped for the totals display
-  total: number // subtotal + taxAmount
+  total: number // gross + taxAmount
   netPayable: number // = total (what the vendor is paid); kept for payment logic
   amountPaid: number // running total settled via vendor payments (0 until paid)
 }
@@ -409,6 +411,8 @@ export interface NewPurchase {
   vendorId: string
   note: string
   lines: PurchaseLineInput[]
+  discountType?: 'amount' | 'percent'
+  discountValue?: number
 }
 
 export interface NewSale {

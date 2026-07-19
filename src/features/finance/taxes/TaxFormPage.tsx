@@ -145,35 +145,38 @@ function TaxFormPage() {
               {(fields, { add, remove }, { errors }) => (
                 <>
                   {fields.map(({ key, name, ...rest }) => (
-                    <div key={key} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                      <Form.Item
-                        {...rest}
-                        name={[name, 'purpose']}
-                        rules={[{ required: true, message: 'Purpose is required' }]}
-                        style={{ marginBottom: 0, flex: '0 0 220px' }}
-                      >
-                        <Select placeholder="Purpose" options={purposeOptionsFor(name)} />
-                      </Form.Item>
-                      <Form.Item
-                        {...rest}
-                        name={[name, 'glAccountId']}
-                        rules={[{ required: true, message: 'GL account is required' }]}
-                        style={{ marginBottom: 0, flex: 1 }}
-                      >
-                        <Select
-                          showSearch
-                          optionFilterProp="label"
-                          placeholder="GL account"
-                          options={accountOptions}
+                    <div key={key} className="line-card line-card--row">
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <Form.Item
+                          {...rest}
+                          name={[name, 'purpose']}
+                          rules={[{ required: true, message: 'Purpose is required' }]}
+                          style={{ marginBottom: 0, flex: '0 0 220px' }}
+                        >
+                          <Select placeholder="Purpose" options={purposeOptionsFor(name)} />
+                        </Form.Item>
+                        <Form.Item
+                          {...rest}
+                          name={[name, 'glAccountId']}
+                          rules={[{ required: true, message: 'GL account is required' }]}
+                          style={{ marginBottom: 0, flex: 1 }}
+                        >
+                          <Select
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder="GL account"
+                            options={accountOptions}
+                          />
+                        </Form.Item>
+                        <Button
+                          type="text"
+                          danger
+                          aria-label="Remove GL account"
+                          icon={<Trash2 size={16} />}
+                          disabled={fields.length === 1}
+                          onClick={() => remove(name)}
                         />
-                      </Form.Item>
-                      <Button
-                        type="text"
-                        aria-label="Remove GL account"
-                        icon={<Trash2 size={16} />}
-                        disabled={fields.length === 1}
-                        onClick={() => remove(name)}
-                      />
+                      </div>
                     </div>
                   ))}
                   <Button

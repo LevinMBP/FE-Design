@@ -27,7 +27,6 @@ export interface Vendor extends ContactAddress {
   email: string
   contactPerson: string
   contactNumber: string
-  category: string
   status: ContactStatus
 }
 
@@ -44,16 +43,6 @@ export interface Employee {
 export type NewCustomer = Omit<Customer, 'id'>
 export type NewVendor = Omit<Vendor, 'id'>
 export type NewEmployee = Omit<Employee, 'id'>
-
-/** Vendor categories offered in the vendor form. */
-export const VENDOR_CATEGORIES = [
-  'Raw Materials',
-  'Packaging',
-  'Logistics',
-  'Services',
-  'Equipment',
-  'Other',
-] as const
 
 /** Departments offered in the employee form. */
 export const DEPARTMENTS = [

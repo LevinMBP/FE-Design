@@ -221,8 +221,154 @@
 }
 .form-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* ---- Sectioned document forms (purchases, sales, inventory docs) ---- */
+.form-section {
+  margin-bottom: 20px;
+}
+
+.form-section__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-subtle);
+}
+
+/* Hairline that carries the section title across the card. */
+.form-section__title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* One document line as a card. The base padding expects fields that carry
+   their own 8px bottom margin; use --row for lines whose fields have none. */
+.line-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  padding: 12px 14px 6px;
+  margin-bottom: 12px;
+}
+
+.line-card--row {
+  padding-bottom: 12px;
+}
+
+.line-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.line-card__index {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-subtle);
+}
+
+.line-card__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.line-card__total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.line-card__total-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.line-card__total-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Placeholder prompt shown beside a field until a choice unlocks the rest. */
+.line-hint {
+  display: flex;
+  align-items: center;
+  min-height: 62px;
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+
+@media (max-width: 575px) {
+  .line-hint {
+    min-height: 0;
+    padding: 0 0 10px;
+  }
+}
+
+/* Money summary card at the foot of a document form. */
+.form-totals {
+  width: 100%;
+  max-width: 340px;
+  margin: 20px 0 0 auto;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.form-totals__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+  padding: 4px 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.form-totals__row.is-total {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-size: 15px;
+}
+
+.form-totals__row.is-total strong {
+  font-size: 17px;
+  letter-spacing: -0.3px;
+}
+
+/* A totals card with only the grand-total row needs no separator above it. */
+.form-totals__row.is-total:first-child {
+  margin-top: 0;
+  padding-top: 4px;
+  border-top: none;
+}
+
+@media (max-width: 575px) {
+  .form-totals {
+    max-width: none;
+  }
 }
 
 /* ---- Inline alerts ---- */

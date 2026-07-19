@@ -35,6 +35,7 @@ import SalesPage from '../features/sales/SalesPage'
 import SaleFormPage from '../features/sales/SaleFormPage'
 import QuotationsPage from '../features/sales/quotations/QuotationsPage'
 import QuotationFormPage from '../features/sales/quotations/QuotationFormPage'
+import QuotationDetailPage from '../features/sales/quotations/QuotationDetailPage'
 import InvoicesPage from '../features/sales/invoices/InvoicesPage'
 import InvoiceFormPage from '../features/sales/invoices/InvoiceFormPage'
 import CustomersPage from '../features/contacts/customers/CustomersPage'
@@ -156,6 +157,7 @@ function App() {
         <Route path="/sales" element={<SalesModule />} />
         <Route path="/sales/quotations" element={<QuotationsPage />} />
         <Route path="/sales/quotations/new" element={<QuotationFormPage />} />
+        <Route path="/sales/quotations/:id" element={<QuotationDetailPage />} />
         <Route path="/sales/invoices" element={<InvoicesPage />} />
         <Route path="/sales/invoices/new" element={<InvoiceFormPage />} />
         <Route path="/sales/orders" element={<SalesPage />} />

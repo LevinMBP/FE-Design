@@ -1,18 +1,18 @@
 import {
   Button,
-  Checkbox,
   Col,
-  Divider,
   Form,
   Input,
   InputNumber,
   Row,
   Select,
-  Tooltip,
+  Switch,
   type FormInstance,
 } from 'antd'
 import { Plus, Trash2 } from 'lucide-react'
 import type { StockItem } from '../inventory/types'
+import type { Tax } from '../finance/types'
+import { peso } from './salesDocMath'
 import { itemValue, type ItemMeta } from './salesFormShared'
 
 interface LineFieldValues {
@@ -21,6 +21,7 @@ interface LineFieldValues {
   description?: string
   quantity?: number
   unitPrice?: number
+  taxIds?: string[]
   taxIncluded?: boolean
 }
 
@@ -29,6 +30,8 @@ interface Props {
   items: StockItem[]
   itemsLoading?: boolean
   itemMeta: Map<string, ItemMeta>
+  /** Sales-applicable taxes offered on each line. */
+  taxes: Tax[]
   /** Quotations show packaging + description; invoices keep lines lean. */
   showDetails?: boolean
 }
@@ -36,11 +39,16 @@ interface Props {
 /**
  * The line-items editor for both document kinds. Picking an item auto-fills its
  * default price (and, when detailed, its packaging/description). Each line has a
- * "Tax in" checkbox (disabled until a document tax is chosen); new lines inherit
+ * "Tax in" switch (disabled until the line has a tax); new lines inherit
  * the "apply to all" default.
  */
-function LineItemsField({ form, items, itemsLoading, itemMeta, showDetails }: Props) {
-  const hasTax = !!Form.useWatch('taxId', form)
+function LineItemsField({ form, items, itemsLoading, itemMeta, taxes, showDetails }: Props) {
+  const lines = (Form.useWatch('lines', form) ?? []) as LineFieldValues[]
+
+  const taxOptions = taxes.map((t) => ({
+    value: t.id,
+    label: `${t.name} ${t.rate}%`,
+  }))
 
   const itemOptions = items.map((i) => ({
     value: itemValue(i),
@@ -61,137 +69,153 @@ function LineItemsField({ form, items, itemsLoading, itemMeta, showDetails }: Pr
     form.setFieldsValue({ lines: next })
   }
 
-  const taxCheckbox = (name: number, rest: object) => (
-    <Tooltip title="This line's price already includes the document tax">
-      <span>
-        <Form.Item
-          {...rest}
-          name={[name, 'taxIncluded']}
-          valuePropName="checked"
-          noStyle
-        >
-          <Checkbox disabled={!hasTax} />
-        </Form.Item>
-      </span>
-    </Tooltip>
-  )
-
   return (
     <Form.List name="lines">
       {(fields, { add, remove }) => (
         <>
-          <Row
-            gutter={12}
-            style={{
-              marginBottom: 6,
-              fontSize: 12,
-              fontWeight: 500,
-              color: 'var(--text-muted)',
-            }}
-          >
-            <Col span={showDetails ? 9 : 10}>Item</Col>
-            <Col span={4}>Qty</Col>
-            <Col span={showDetails ? 6 : 5}>Unit price</Col>
-            <Col span={3} style={{ textAlign: 'center' }}>
-              Tax in
-            </Col>
-            <Col span={2} />
-          </Row>
-
-          {fields.map(({ key, name, ...rest }) => (
-            <div
-              key={key}
-              style={{
-                marginBottom: showDetails ? 12 : 8,
-                paddingBottom: showDetails ? 10 : 0,
-                borderBottom: showDetails
-                  ? '1px dashed var(--border)'
-                  : undefined,
-              }}
-            >
-              <Row gutter={12} align="middle" style={{ marginBottom: showDetails ? 8 : 0 }}>
-                <Col span={showDetails ? 9 : 10}>
-                  <Form.Item
-                    {...rest}
-                    name={[name, 'item']}
-                    rules={[{ required: true, message: 'Select an item' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Select
-                      showSearch
-                      optionFilterProp="label"
-                      placeholder="Item"
-                      loading={itemsLoading}
-                      options={itemOptions}
-                      onChange={(value) => onItemChange(name, value)}
+          {fields.map(({ key, name, ...rest }, idx) => {
+            const l = lines[name]
+            const lineTotal = (l?.quantity ?? 0) * (l?.unitPrice ?? 0)
+            const lineHasTax = (l?.taxIds?.length ?? 0) > 0
+            return (
+              <div key={key} className="line-card">
+                <div className="line-card__head">
+                  <span className="line-card__index">Item {idx + 1}</span>
+                  <div className="line-card__right">
+                    <span className="line-card__total">
+                      <span className="line-card__total-label">Line total</span>
+                      <span className="line-card__total-value">{peso(lineTotal)}</span>
+                    </span>
+                    <Button
+                      type="text"
+                      danger
+                      aria-label="Remove line"
+                      icon={<Trash2 size={16} />}
+                      disabled={fields.length === 1}
+                      onClick={() => remove(name)}
                     />
-                  </Form.Item>
-                </Col>
-                <Col span={4}>
-                  <Form.Item
-                    {...rest}
-                    name={[name, 'quantity']}
-                    rules={[{ required: true, message: 'Qty' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <InputNumber min={1} placeholder="Qty" style={{ width: '100%' }} />
-                  </Form.Item>
-                </Col>
-                <Col span={showDetails ? 6 : 5}>
-                  <Form.Item
-                    {...rest}
-                    name={[name, 'unitPrice']}
-                    rules={[{ required: true, message: 'Unit price' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <InputNumber
-                      min={0}
-                      step={0.5}
-                      prefix="₱"
-                      placeholder="Unit price"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={3} style={{ textAlign: 'center' }}>
-                  {taxCheckbox(name, rest)}
-                </Col>
-                <Col span={2} style={{ textAlign: 'right' }}>
-                  <Button
-                    type="text"
-                    aria-label="Remove line"
-                    icon={<Trash2 size={16} />}
-                    disabled={fields.length === 1}
-                    onClick={() => remove(name)}
-                  />
-                </Col>
-              </Row>
+                  </div>
+                </div>
 
-              {showDetails && (
                 <Row gutter={12}>
-                  <Col span={9}>
-                    <Form.Item {...rest} name={[name, 'packaging']} style={{ marginBottom: 0 }}>
-                      <Input placeholder="Packaging (auto)" size="small" />
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      {...rest}
+                      name={[name, 'item']}
+                      label="Item"
+                      rules={[{ required: true, message: 'Select an item' }]}
+                      style={{ marginBottom: 8 }}
+                    >
+                      <Select
+                        showSearch
+                        optionFilterProp="label"
+                        placeholder="Select an item"
+                        loading={itemsLoading}
+                        options={itemOptions}
+                        onChange={(value) => onItemChange(name, value)}
+                      />
                     </Form.Item>
                   </Col>
-                  <Col span={15}>
-                    <Form.Item {...rest} name={[name, 'description']} style={{ marginBottom: 0 }}>
-                      <Input placeholder="Description (auto)" size="small" />
+                  <Col xs={8} md={4}>
+                    <Form.Item
+                      {...rest}
+                      name={[name, 'quantity']}
+                      label="Qty"
+                      rules={[{ required: true, message: 'Qty' }]}
+                      style={{ marginBottom: 8 }}
+                    >
+                      <InputNumber min={1} placeholder="Qty" style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={16} md={5}>
+                    <Form.Item
+                      {...rest}
+                      name={[name, 'unitPrice']}
+                      label="Unit price"
+                      rules={[{ required: true, message: 'Unit price' }]}
+                      style={{ marginBottom: 8 }}
+                    >
+                      <InputNumber
+                        min={0}
+                        step={0.5}
+                        prefix="₱"
+                        placeholder="Unit price"
+                        style={{ width: '100%' }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={3}>
+                    <Form.Item
+                      {...rest}
+                      name={[name, 'taxIncluded']}
+                      label="Tax in"
+                      tooltip="This line's price already includes its taxes"
+                      valuePropName="checked"
+                      style={{ marginBottom: 8 }}
+                    >
+                      <Switch disabled={!lineHasTax} />
                     </Form.Item>
                   </Col>
                 </Row>
-              )}
-            </div>
-          ))}
+
+                <Row gutter={12}>
+                  <Col xs={24} md={showDetails ? 9 : 12}>
+                    <Form.Item
+                      {...rest}
+                      name={[name, 'taxIds']}
+                      label="Taxes"
+                      style={{ marginBottom: 8 }}
+                    >
+                      <Select
+                        mode="multiple"
+                        allowClear
+                        placeholder="e.g. VAT 12%"
+                        optionFilterProp="label"
+                        options={taxOptions}
+                      />
+                    </Form.Item>
+                  </Col>
+                  {showDetails && (
+                    <>
+                      <Col xs={24} md={6}>
+                        <Form.Item
+                          {...rest}
+                          name={[name, 'packaging']}
+                          label="Packaging"
+                          style={{ marginBottom: 8 }}
+                        >
+                          <Input placeholder="Auto-filled from the item" />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={9}>
+                        <Form.Item
+                          {...rest}
+                          name={[name, 'description']}
+                          label="Description"
+                          style={{ marginBottom: 8 }}
+                        >
+                          <Input placeholder="Auto-filled from the item" />
+                        </Form.Item>
+                      </Col>
+                    </>
+                  )}
+                </Row>
+              </div>
+            )
+          })}
           <Button
             type="dashed"
-            onClick={() => add({ taxIncluded: form.getFieldValue('applyTaxAll') ?? false })}
+            onClick={() =>
+              add({
+                taxIds: form.getFieldValue('docTaxIds') ?? [],
+                taxIncluded: form.getFieldValue('applyTaxAll') ?? false,
+              })
+            }
             icon={<Plus size={16} />}
             style={{ width: '100%', marginTop: 4 }}
           >
             Add item
           </Button>
-          {showDetails && <Divider style={{ margin: '16px 0 0' }} />}
         </>
       )}
     </Form.List>

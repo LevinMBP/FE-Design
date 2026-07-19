@@ -1,0 +1,192 @@
+/* Quotation document preview — deliberately rendered as paper (white with
+   dark ink) in both themes so what you see is what prints. */
+
+.quote-doc {
+  max-width: 860px;
+  padding: 32px;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.quote-doc__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #111827;
+}
+
+.quote-doc__kicker {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #6b7280;
+}
+
+.quote-doc__ref {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.quote-doc__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.quote-doc__meta h3 {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #6b7280;
+  margin: 0 0 6px;
+}
+
+.quote-doc__meta p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.quote-doc table.quote-doc__lines {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  margin-bottom: 16px;
+}
+
+.quote-doc__lines th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #6b7280;
+  padding: 8px 10px;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.quote-doc__lines td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+.quote-doc__lines .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.quote-doc__totals {
+  max-width: 320px;
+  margin-left: auto;
+  font-size: 14px;
+}
+
+.quote-doc__totals-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 3px 0;
+  color: #4b5563;
+  font-variant-numeric: tabular-nums;
+}
+
+.quote-doc__totals-row.is-total {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 2px solid #111827;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.quote-doc__notes {
+  margin-top: 20px;
+  font-size: 13.5px;
+  color: #4b5563;
+  white-space: pre-wrap;
+}
+
+/* ---- Signature blocks ---- */
+.quote-doc__sigs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  margin-top: 44px;
+  max-width: 620px;
+}
+
+.quote-sig {
+  text-align: center;
+}
+
+.quote-sig__img {
+  display: block;
+  height: 64px;
+  margin: 0 auto -6px;
+  object-fit: contain;
+}
+
+/* Keeps unsigned blocks the same height as signed ones. */
+.quote-sig__blank {
+  height: 64px;
+  margin-bottom: -6px;
+}
+
+.quote-sig__name {
+  border-top: 1px solid #111827;
+  padding-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 27px;
+}
+
+.quote-sig__role {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+/* ---- Print: show only the document, edge to edge ---- */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .quote-doc,
+  .quote-doc * {
+    visibility: visible;
+  }
+  .quote-doc {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .quote-doc {
+    padding: 20px;
+  }
+  .quote-doc__meta,
+  .quote-doc__sigs {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}

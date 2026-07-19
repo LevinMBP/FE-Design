@@ -41,12 +41,12 @@ function ContactFields({ form, customers }: Props) {
       </Form.Item>
 
       <Row gutter={16}>
-        <Col span={12}>
+        <Col xs={24} sm={12}>
           <Form.Item name="contactPerson" label="Contact person">
             <Input placeholder="Auto-filled from customer" />
           </Form.Item>
         </Col>
-        <Col span={12}>
+        <Col xs={24} sm={12}>
           <Form.Item name="email" label="Email">
             <Input placeholder="Auto-filled from customer" />
           </Form.Item>

@@ -11,7 +11,8 @@ import type { StockItemKind } from '../inventory/types'
 
 export type DiscountType = 'amount' | 'percent'
 
-/** One priced line. `taxIncluded` = the unit price already contains the doc tax. */
+/** One priced line. `taxIds` are the taxes this line attracts; `taxIncluded`
+    means the unit price already contains those taxes. */
 export interface SalesDocLine {
   itemKind: StockItemKind
   itemId: string
@@ -21,7 +22,14 @@ export interface SalesDocLine {
   description: string
   quantity: number
   unitPrice: number
+  taxIds: string[]
   taxIncluded: boolean
+}
+
+/** One tax's share of a document's total, e.g. { label: 'VAT 12%', amount: 120 }. */
+export interface TaxBreakdownRow {
+  label: string
+  amount: number
 }
 
 /** The money breakdown shared by both document kinds. */
@@ -31,6 +39,7 @@ export interface DocTotals {
   gross: number // net after discount (the taxable base)
   taxAmount: number // tax on the discounted base
   total: number // amount payable
+  taxBreakdown: TaxBreakdownRow[] // per-tax split of taxAmount
 }
 
 export type QuotationStatus =
@@ -69,9 +78,13 @@ interface SalesDocBase extends DocTotals {
   lines: SalesDocLine[]
   discountType: DiscountType
   discountValue: number
-  taxId: string // '' = no tax
-  taxLabel: string // e.g. "VAT 12%"
   notes: string
+}
+
+/** A signatory on a document: printed name + drawn signature (PNG data URL). */
+export interface SignatureBlock {
+  name: string
+  signature: string
 }
 
 export interface Quotation extends SalesDocBase {
@@ -80,6 +93,8 @@ export interface Quotation extends SalesDocBase {
   expiryDate: string // ISO date (defaults to date + 3 months)
   status: QuotationStatus
   convertedInvoiceId?: string
+  preparedBy?: SignatureBlock
+  approvedBy?: SignatureBlock
 }
 
 export interface Invoice extends SalesDocBase {
@@ -99,6 +114,7 @@ export interface SalesDocLineInput {
   itemId: string
   quantity: number
   unitPrice: number
+  taxIds: string[]
   taxIncluded: boolean
   packaging: string
   description: string
@@ -112,7 +128,6 @@ interface NewSalesDocBase {
   lines: SalesDocLineInput[]
   discountType: DiscountType
   discountValue: number
-  taxId: string
   notes: string
 }
 
@@ -121,6 +136,8 @@ export interface NewQuotation extends NewSalesDocBase {
   effectiveDate: string
   expiryDate: string
   status: 'draft' | 'sent'
+  preparedBy?: SignatureBlock
+  approvedBy?: SignatureBlock
 }
 
 export interface NewInvoice extends NewSalesDocBase {

@@ -188,6 +188,9 @@ function PurchasesPage() {
               />
               <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', margin: '12px 2px 0', color: 'var(--text-muted)' }}>
                 <span>Subtotal: <strong>{peso(r.subtotal)}</strong></span>
+                {r.discountAmount > 0 && (
+                  <span>Discount: <strong>− {peso(r.discountAmount)}</strong></span>
+                )}
                 {r.taxSummary.map((t) => (
                   <span key={t.taxId}>{t.label}: {peso(t.amount)}</span>
                 ))}

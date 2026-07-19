@@ -1,14 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { App, Button, Col, Form, Input, InputNumber, Row, Select } from 'antd'
 import { useAddVendorMutation } from '../contactsApi'
-import { VENDOR_CATEGORIES, type ContactStatus } from '../types'
+import type { ContactStatus } from '../types'
 
 interface VendorFormValues {
   company: string
   email?: string
   contactPerson?: string
   contactNumber?: string
-  category: string
   addressLine1?: string
   addressLine2?: string
   city?: string
@@ -32,7 +31,6 @@ function VendorFormPage() {
         email: values.email?.trim() ?? '',
         contactPerson: values.contactPerson?.trim() ?? '',
         contactNumber: values.contactNumber?.trim() ?? '',
-        category: values.category,
         addressLine1: values.addressLine1?.trim() ?? '',
         addressLine2: values.addressLine2?.trim() ?? '',
         city: values.city?.trim() ?? '',
@@ -63,7 +61,7 @@ function VendorFormPage() {
         <Form
           layout="vertical"
           requiredMark
-          initialValues={{ status: 'active', category: 'Raw Materials', latitude: 0, longitude: 0 }}
+          initialValues={{ status: 'active', latitude: 0, longitude: 0 }}
           onFinish={onFinish}
         >
           <Form.Item
@@ -74,24 +72,13 @@ function VendorFormPage() {
             <Input placeholder="Company" />
           </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="email"
-                label="Email"
-                rules={[{ type: 'email', message: 'Enter a valid email' }]}
-              >
-                <Input placeholder="Email" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="category" label="Category" rules={[{ required: true }]}>
-                <Select
-                  options={VENDOR_CATEGORIES.map((c) => ({ value: c, label: c }))}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[{ type: 'email', message: 'Enter a valid email' }]}
+          >
+            <Input placeholder="Email" />
+          </Form.Item>
 
           <Row gutter={16}>
             <Col span={12}>

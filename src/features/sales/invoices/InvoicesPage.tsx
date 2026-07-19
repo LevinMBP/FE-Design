@@ -85,7 +85,12 @@ function InvoicesPage() {
       ),
     },
     { title: 'Customer', dataIndex: 'customerName', render: (v: string) => v || '—' },
-    { title: 'Tax', dataIndex: 'taxLabel', render: (v: string) => v || '—' },
+    {
+      title: 'Tax',
+      dataIndex: 'taxBreakdown',
+      render: (rows: Invoice['taxBreakdown']) =>
+        rows.length ? rows.map((r) => r.label).join(' + ') : '—',
+    },
     {
       title: 'Total',
       dataIndex: 'total',

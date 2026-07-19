@@ -1,7 +1,6 @@
 import {
   Checkbox,
   Col,
-  Divider,
   Form,
   Input,
   InputNumber,
@@ -13,13 +12,13 @@ import {
 import type { Tax } from '../finance/types'
 import { computeTotals, peso } from './salesDocMath'
 import type { DiscountType } from './types'
-import './SalesDocuments.css'
 
 const { TextArea } = Input
 
 interface LineValues {
   quantity?: number
   unitPrice?: number
+  taxIds?: string[]
   taxIncluded?: boolean
 }
 
@@ -29,37 +28,44 @@ interface Props {
 }
 
 /**
- * Discount, tax, and the live money breakdown (Subtotal → Discount → Gross →
- * Tax → Total). The "apply to all lines" checkbox is the fast-track: it stamps
- * every line's tax-included flag; individual lines can still be overridden.
+ * Discount, tax fast-apply, and the live money breakdown (Subtotal → Discount
+ * → Gross → per-tax rows → Total). Taxes live on the lines; the "Taxes" picker
+ * here is the fast-track that stamps every line's tax selection, and the
+ * checkbox stamps every line's tax-included flag. Individual lines can still
+ * be overridden afterwards.
  */
 function TotalsFooter({ form, taxes }: Props) {
   const lines = (Form.useWatch('lines', form) ?? []) as LineValues[]
   const discountType = (Form.useWatch('discountType', form) ?? 'amount') as DiscountType
   const discountValue = Form.useWatch('discountValue', form) ?? 0
-  const taxId = Form.useWatch('taxId', form) ?? ''
+  const docTaxIds = (Form.useWatch('docTaxIds', form) ?? []) as string[]
 
-  const tax = taxes.find((t) => t.id === taxId)
-  const hasTax = !!tax
+  const hasTax =
+    docTaxIds.length > 0 || lines.some((l) => (l?.taxIds?.length ?? 0) > 0)
 
   const totals = computeTotals(
     lines.map((l) => ({
       quantity: l?.quantity ?? 0,
       unitPrice: l?.unitPrice ?? 0,
+      taxIds: l?.taxIds ?? [],
       taxIncluded: !!l?.taxIncluded,
     })),
     discountType,
     discountValue,
-    tax,
+    taxes,
   )
 
-  const taxOptions = [
-    { value: '', label: 'No tax' },
-    ...taxes.map((t) => ({
-      value: t.id,
-      label: `${t.name} ${t.rate}%`,
-    })),
-  ]
+  const taxOptions = taxes.map((t) => ({
+    value: t.id,
+    label: `${t.name} ${t.rate}%`,
+  }))
+
+  const applyTaxesToAll = (taxIds: string[]) => {
+    const current = (form.getFieldValue('lines') as LineValues[]) ?? []
+    form.setFieldsValue({
+      lines: current.map((l) => ({ ...l, taxIds: [...taxIds] })),
+    })
+  }
 
   const applyToAll = (checked: boolean) => {
     const current = (form.getFieldValue('lines') as LineValues[]) ?? []
@@ -70,10 +76,12 @@ function TotalsFooter({ form, taxes }: Props) {
 
   return (
     <>
-      <Divider style={{ margin: '20px 0 16px' }}>Discount &amp; tax</Divider>
+      <div className="form-section__title" style={{ margin: '20px 0 16px' }}>
+        Discount &amp; tax
+      </div>
 
       <Row gutter={16}>
-        <Col span={8}>
+        <Col xs={24} sm={12} md={8}>
           <Form.Item name="discountType" label="Discount type">
             <Segmented
               block
@@ -84,7 +92,7 @@ function TotalsFooter({ form, taxes }: Props) {
             />
           </Form.Item>
         </Col>
-        <Col span={8}>
+        <Col xs={24} sm={12} md={8}>
           <Form.Item name="discountValue" label="Discount">
             <InputNumber
               min={0}
@@ -96,9 +104,20 @@ function TotalsFooter({ form, taxes }: Props) {
             />
           </Form.Item>
         </Col>
-        <Col span={8}>
-          <Form.Item name="taxId" label="Tax">
-            <Select options={taxOptions} />
+        <Col xs={24} sm={12} md={8}>
+          <Form.Item
+            name="docTaxIds"
+            label="Taxes"
+            tooltip="Fast apply: stamps this selection onto every line. You can still adjust taxes per line afterwards."
+          >
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="Apply taxes to all lines"
+              optionFilterProp="label"
+              options={taxOptions}
+              onChange={(ids: string[]) => applyTaxesToAll(ids)}
+            />
           </Form.Item>
         </Col>
       </Row>
@@ -116,16 +135,22 @@ function TotalsFooter({ form, taxes }: Props) {
         <TextArea rows={2} placeholder="Terms, delivery notes, thank-you message…" />
       </Form.Item>
 
-      <div className="salesdoc-totals">
+      <div className="form-totals">
         <TotalRow label="Subtotal" value={peso(totals.subtotal)} />
         {totals.discountAmount > 0 && (
           <TotalRow label="Discount" value={`− ${peso(totals.discountAmount)}`} />
         )}
         <TotalRow label="Gross (before tax)" value={peso(totals.gross)} />
-        <TotalRow
-          label={hasTax ? `Tax amount · ${tax!.name} ${tax!.rate}%` : 'Tax amount'}
-          value={peso(totals.taxAmount)}
-        />
+        {totals.taxBreakdown.length === 0 ? (
+          <TotalRow label="Tax amount" value={peso(0)} />
+        ) : (
+          totals.taxBreakdown.map((t) => (
+            <TotalRow key={t.label} label={t.label} value={peso(t.amount)} />
+          ))
+        )}
+        {totals.taxBreakdown.length > 1 && (
+          <TotalRow label="Total tax" value={peso(totals.taxAmount)} />
+        )}
         <TotalRow label="Final total" value={peso(totals.total)} strong />
       </div>
     </>
@@ -143,11 +168,9 @@ function TotalRow({
   strong?: boolean
 }) {
   return (
-    <div className={`salesdoc-totals__row${strong ? ' is-total' : ''}`}>
+    <div className={`form-totals__row${strong ? ' is-total' : ''}`}>
       <span>{label}</span>
-      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-        {strong ? <strong>{value}</strong> : value}
-      </span>
+      <span>{strong ? <strong>{value}</strong> : value}</span>
     </div>
   )
 }

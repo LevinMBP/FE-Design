@@ -5,7 +5,6 @@ import {
   Button,
   Col,
   DatePicker,
-  Divider,
   Form,
   Input,
   InputNumber,
@@ -134,53 +133,56 @@ function AuditFormPage() {
           initialValues={{ date: dayjs(), itemType: 'material', note: '', lines: [{}] }}
           onFinish={onFinish}
         >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="date"
-                label="Date"
-                rules={[{ required: true, message: 'Date is required' }]}
-              >
-                <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="locationId"
-                label="Inventory location"
-                tooltip="Location where the audit will be performed"
-                rules={[{ required: true, message: 'Pick a location' }]}
-              >
-                <Select
-                  placeholder="Where the count happened"
-                  options={locationOptions}
-                  notFoundContent="No active locations — add one under Locations."
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+          <div className="form-section">
+            <div className="form-section__title">Audit details</div>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="date"
+                  label="Date"
+                  rules={[{ required: true, message: 'Date is required' }]}
+                >
+                  <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="locationId"
+                  label="Inventory location"
+                  tooltip="Location where the audit will be performed"
+                  rules={[{ required: true, message: 'Pick a location' }]}
+                >
+                  <Select
+                    placeholder="Where the count happened"
+                    options={locationOptions}
+                    notFoundContent="No active locations — add one under Locations."
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="itemType"
-                label="Audit type"
-                tooltip="What this count covers — the item list below follows it"
-                rules={[{ required: true }]}
-              >
-                <Select
-                  options={ITEM_TYPE_OPTIONS}
-                  onChange={() => form.setFieldValue('lines', [{}])}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="itemType"
+                  label="Audit type"
+                  tooltip="What this count covers — the item list below follows it"
+                  rules={[{ required: true }]}
+                >
+                  <Select
+                    options={ITEM_TYPE_OPTIONS}
+                    onChange={() => form.setFieldValue('lines', [{}])}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Form.Item name="note" label="Note">
-            <Input.TextArea rows={2} placeholder="Optional — e.g. quarterly cycle count" />
-          </Form.Item>
+            <Form.Item name="note" label="Note" style={{ marginBottom: 0 }}>
+              <Input.TextArea rows={2} placeholder="Optional — e.g. quarterly cycle count" />
+            </Form.Item>
+          </div>
 
-          <Divider style={{ margin: '4px 0 16px' }}>Counted items</Divider>
+          <div className="form-section__title">Counted items</div>
 
           <Form.List name="lines">
             {(fields, { add, remove }) => (
@@ -194,8 +196,9 @@ function AuditFormPage() {
                       ? Math.round((counted - meta.onHand) * 100) / 100
                       : null
                   return (
-                    <Row key={key} gutter={12} align="top" style={{ marginBottom: 8 }}>
-                      <Col flex="auto">
+                    <div key={key} className="line-card line-card--row">
+                      <Row gutter={12} align="top">
+                        <Col flex="auto">
                         <Form.Item
                           {...rest}
                           name={[name, 'itemId']}
@@ -253,15 +256,16 @@ function AuditFormPage() {
                       </Col>
                       <Col flex="32px">
                         <Button
+                          type="text"
+                          danger
                           aria-label="Remove item"
                           icon={<Trash2 size={16} />}
                           disabled={fields.length === 1}
                           onClick={() => remove(name)}
-                          danger
-                          shape="circle"
                         />
                       </Col>
-                    </Row>
+                      </Row>
+                    </div>
                   )
                 })}
                 <Button
@@ -276,7 +280,7 @@ function AuditFormPage() {
             )}
           </Form.List>
 
-          <div className="form-actions" style={{ marginTop: 20 }}>
+          <div className="form-actions">
             <Button type="primary" htmlType="submit" loading={isLoading}>
               Save audit
             </Button>

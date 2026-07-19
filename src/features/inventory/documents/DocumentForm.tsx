@@ -4,7 +4,6 @@ import {
   Button,
   Col,
   DatePicker,
-  Divider,
   Form,
   InputNumber,
   Row,
@@ -127,89 +126,100 @@ function DocumentForm(props: DocumentFormProps) {
           initialValues={{ date: dayjs(), lines: [{}] }}
           onFinish={onFinish}
         >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="partyId"
-                label={props.partyLabel}
-                rules={[{ required: true, message: `${props.partyLabel} is required` }]}
-              >
-                <Select
-                  showSearch
-                  optionFilterProp="label"
-                  placeholder={props.partyPlaceholder}
-                  options={props.partyOptions}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="date"
-                label="Date"
-                rules={[{ required: true, message: 'Date is required' }]}
-              >
-                <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
-              </Form.Item>
-            </Col>
-          </Row>
+          <div className="form-section">
+            <div className="form-section__title">Details</div>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="partyId"
+                  label={props.partyLabel}
+                  rules={[{ required: true, message: `${props.partyLabel} is required` }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <Select
+                    showSearch
+                    optionFilterProp="label"
+                    placeholder={props.partyPlaceholder}
+                    options={props.partyOptions}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="date"
+                  label="Date"
+                  rules={[{ required: true, message: 'Date is required' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
 
-          <Divider style={{ margin: '4px 0 16px' }}>Items</Divider>
+          <div className="form-section__title">Items</div>
 
           <Form.List name="lines">
             {(fields, { add, remove }) => (
               <>
                 {fields.map(({ key, name, ...rest }) => (
-                  <Row gutter={12} key={key} align="middle" style={{ marginBottom: 4 }}>
-                    <Col span={11}>
-                      <Form.Item
-                        {...rest}
-                        name={[name, 'item']}
-                        rules={[{ required: true, message: 'Select an item' }]}
-                      >
-                        <Select
-                          showSearch
-                          optionFilterProp="label"
-                          placeholder="Item"
-                          loading={props.itemsLoading}
-                          options={itemOptions}
-                          onChange={(value) => onItemChange(name, value)}
+                  <div key={key} className="line-card line-card--row">
+                    <Row gutter={12} align="middle">
+                      <Col flex="auto">
+                        <Form.Item
+                          {...rest}
+                          name={[name, 'item']}
+                          rules={[{ required: true, message: 'Select an item' }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Select
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder="Item"
+                            loading={props.itemsLoading}
+                            options={itemOptions}
+                            onChange={(value) => onItemChange(name, value)}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col flex="110px">
+                        <Form.Item
+                          {...rest}
+                          name={[name, 'quantity']}
+                          rules={[{ required: true, message: 'Qty' }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InputNumber min={1} placeholder="Qty" style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col flex="140px">
+                        <Form.Item
+                          {...rest}
+                          name={[name, 'amount']}
+                          rules={[{ required: true, message: props.amountLabel }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InputNumber
+                            min={0}
+                            step={0.5}
+                            prefix="₱"
+                            placeholder={props.amountLabel}
+                            style={{ width: '100%' }}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col flex="32px">
+                        <Button
+                          type="text"
+                          danger
+                          aria-label="Remove line"
+                          icon={<Trash2 size={16} />}
+                          disabled={fields.length === 1}
+                          onClick={() => remove(name)}
                         />
-                      </Form.Item>
-                    </Col>
-                    <Col span={5}>
-                      <Form.Item
-                        {...rest}
-                        name={[name, 'quantity']}
-                        rules={[{ required: true, message: 'Qty' }]}
-                      >
-                        <InputNumber min={1} placeholder="Qty" style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={6}>
-                      <Form.Item
-                        {...rest}
-                        name={[name, 'amount']}
-                        rules={[{ required: true, message: props.amountLabel }]}
-                      >
-                        <InputNumber
-                          min={0}
-                          step={0.5}
-                          prefix="₱"
-                          placeholder={props.amountLabel}
-                          style={{ width: '100%' }}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={2}>
-                      <Button
-                        type="text"
-                        aria-label="Remove line"
-                        icon={<Trash2 size={16} />}
-                        disabled={fields.length === 1}
-                        onClick={() => remove(name)}
-                      />
-                    </Col>
-                  </Row>
+                      </Col>
+                    </Row>
+                  </div>
                 ))}
                 <Button
                   type="dashed"
@@ -223,16 +233,11 @@ function DocumentForm(props: DocumentFormProps) {
             )}
           </Form.List>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              margin: '18px 0',
-              fontSize: 16,
-            }}
-          >
-            <span style={{ marginRight: 12, color: 'var(--text-muted)' }}>Total</span>
-            <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{peso(total)}</strong>
+          <div className="form-totals">
+            <div className="form-totals__row is-total">
+              <span>Total</span>
+              <strong>{peso(total)}</strong>
+            </div>
           </div>
 
           <div className="form-actions">

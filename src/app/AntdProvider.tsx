@@ -49,6 +49,9 @@ function AntdProvider({ children }: { children: ReactNode }) {
           Tag: {
             borderRadiusSM: 4,
           },
+          Form: {
+            itemMarginBottom: 8
+          }
         },
       }}
     >

@@ -1,9 +1,10 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, Skeleton, Tag } from 'antd'
-import { ArrowLeft, Truck, MapPin, ShoppingCart, Plus } from 'lucide-react'
+import { ArrowLeft, Truck, MapPin, ShoppingCart, Plus, Wallet } from 'lucide-react'
 import dayjs from 'dayjs'
 import { useGetVendorsQuery } from '../contactsApi'
 import { useGetPurchasesQuery } from '../../inventory/inventoryApi'
+import { purchasePaymentStatus, type PaymentStatus } from '../../inventory/types'
 import type { Vendor } from '../types'
 import '../../../shared/styles/detail.css'
 
@@ -14,6 +15,19 @@ const addressOf = (v: Vendor) =>
   [v.addressLine1, v.addressLine2, v.city, v.state, v.postalCode, v.country]
     .filter(Boolean)
     .join(', ')
+
+/** Whole days until the due date — negative when the bill is overdue. */
+const daysLeft = (dueDate: string) =>
+  dayjs(dueDate).startOf('day').diff(dayjs().startOf('day'), 'day')
+
+/** Due-date urgency chip: overdue (error), due today/soon (warning), else quiet. */
+function DueChip({ dueDate }: { dueDate: string }) {
+  const d = daysLeft(dueDate)
+  if (d < 0) return <Tag color="error" style={{ margin: 0 }}>{-d}d overdue</Tag>
+  if (d === 0) return <Tag color="warning" style={{ margin: 0 }}>Due today</Tag>
+  if (d <= 7) return <Tag color="warning" style={{ margin: 0 }}>{d}d left</Tag>
+  return <Tag style={{ margin: 0 }}>{d}d left</Tag>
+}
 
 function VendorDetailPage() {
   const { id = '' } = useParams()
@@ -51,16 +65,24 @@ function VendorDetailPage() {
     .map((p) => p.date)
     .sort()
     .at(-1)
+  // Open bills: purchases not fully settled, oldest due date first.
+  const openBills = orders
+    .filter((p) => purchasePaymentStatus(p) !== 'paid')
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+  const outstanding = openBills.reduce((sum, p) => sum + (p.netPayable - p.amountPaid), 0)
   const address = addressOf(vendor)
   const active = vendor.status === 'active'
 
   const story =
-    `${vendor.company} is ${active ? 'an active' : 'an inactive'} ${vendor.category ? `${vendor.category.toLowerCase()} ` : ''}vendor` +
+    `${vendor.company} is ${active ? 'an active' : 'an inactive'} vendor` +
     (vendor.city ? ` based in ${[vendor.city, vendor.country].filter(Boolean).join(', ')}` : '') +
     `. ` +
     (orders.length
       ? `You've placed ${orders.length} purchase${orders.length > 1 ? 's' : ''} with them totaling ${peso(totalSpend)}` +
-        (lastOrder ? `, most recently on ${dayjs(lastOrder).format('MMM D, YYYY')}.` : '.')
+        (lastOrder ? `, most recently on ${dayjs(lastOrder).format('MMM D, YYYY')}.` : '.') +
+        (outstanding > 0.005
+          ? ` ${peso(outstanding)} across ${openBills.length} bill${openBills.length > 1 ? 's' : ''} is still outstanding.`
+          : ` All bills are fully settled.`)
       : `No purchases have been recorded with them yet.`)
 
   return (
@@ -72,7 +94,7 @@ function VendorDetailPage() {
       <article className="idp">
         <header className="idp__hero idp__hero--vendor">
           <div className="idp__avatar">{(vendor.company[0] ?? '?').toUpperCase()}</div>
-          <div className="idp__kicker">Vendor{vendor.category ? ` · ${vendor.category}` : ''}</div>
+          <div className="idp__kicker">Vendor{vendor.city ? ` · ${[vendor.city, vendor.country].filter(Boolean).join(', ')}` : ''}</div>
           <h1 className="idp__title">{vendor.company}</h1>
           <div className="idp__meta">
             {vendor.email && <span>{vendor.email}</span>}
@@ -95,7 +117,7 @@ function VendorDetailPage() {
             label="Last order"
             value={lastOrder ? dayjs(lastOrder).format('MMM D, YYYY') : '—'}
           />
-          <Stat label="Category" value={vendor.category || '—'} />
+          <Stat label="Pending payables" value={peso(outstanding)} />
         </section>
 
         <section className="idp__section">
@@ -111,6 +133,60 @@ function VendorDetailPage() {
             <InfoRow label="Phone" value={vendor.contactNumber} />
             <InfoRow label="Address" value={address} />
           </div>
+        </section>
+
+        <section className="idp__section">
+          <h2><Wallet size={17} /> Payables</h2>
+          {openBills.length === 0 ? (
+            <p className="idp__hint">
+              {orders.length === 0
+                ? 'No purchase orders yet.'
+                : 'Nothing outstanding — every bill is paid.'}
+            </p>
+          ) : (
+            <div className="idp__list">
+              {openBills.map((p) => {
+                const status: PaymentStatus = purchasePaymentStatus(p)
+                const pending = p.netPayable - p.amountPaid
+                return (
+                  <div key={p.id} className="idp__list-row">
+                    <span className="idp__list-main">
+                      {p.reference}
+                      {status === 'partial' && (
+                        <Tag color="processing" style={{ marginInlineStart: 8 }}>
+                          Partial
+                        </Tag>
+                      )}
+                    </span>
+                    <span className="idp__list-sub">
+                      due {dayjs(p.dueDate).format('MMM D, YYYY')}
+                    </span>
+                    <span className="idp__list-sub" style={{ minWidth: 96 }}>
+                      <DueChip dueDate={p.dueDate} />
+                    </span>
+                    <span className="idp__list-amt">
+                      {peso(pending)}
+                      {status === 'partial' && (
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+                          {' '}of {peso(p.netPayable)}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )
+              })}
+              <div className="idp__list-row idp__list-row--total">
+                <span className="idp__list-main">Total pending</span>
+                <span className="idp__list-amt">{peso(outstanding)}</span>
+              </div>
+            </div>
+          )}
+          {openBills.length > 0 && (
+            <p className="idp__hint" style={{ marginTop: 10 }}>
+              Settle bills from <Link to="/purchases/orders">Purchase orders</Link> — each row
+              has a Pay action.
+            </p>
+          )}
         </section>
 
         <section className="idp__section">

@@ -22,6 +22,7 @@ export interface LineFieldValues {
   description?: string
   quantity?: number
   unitPrice?: number
+  taxIds?: string[]
   taxIncluded?: boolean
 }
 
@@ -70,6 +71,7 @@ export function buildLineInputs(
         itemId: id,
         quantity: l.quantity as number,
         unitPrice: l.unitPrice ?? 0,
+        taxIds: l.taxIds ?? [],
         taxIncluded: !!l.taxIncluded,
         packaging: l.packaging ?? '',
         description: l.description ?? '',

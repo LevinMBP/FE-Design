@@ -4,6 +4,7 @@ import { accountingApi } from '../accounting/accountingApi'
 import {
   createInvoice,
   createQuotation,
+  getQuotation,
   listInvoices,
   listQuotations,
   markInvoicePaid,
@@ -54,6 +55,15 @@ export const salesDocsApi = createApi({
         return { data: listQuotations() }
       },
       providesTags: ['Quotation'],
+    }),
+
+    getQuotation: builder.query<Quotation, string>({
+      queryFn: async (id) => {
+        await delay(200)
+        const quote = getQuotation(id)
+        return quote ? { data: quote } : { error: 'Quotation not found.' }
+      },
+      providesTags: (_r, _e, id) => [{ type: 'Quotation' as const, id }],
     }),
 
     addQuotation: builder.mutation<Quotation, NewQuotation>({
@@ -138,6 +148,7 @@ export const salesDocsApi = createApi({
 
 export const {
   useGetQuotationsQuery,
+  useGetQuotationQuery,
   useAddQuotationMutation,
   useSetQuotationStatusMutation,
   useGetInvoicesQuery,

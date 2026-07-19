@@ -86,12 +86,12 @@ function OpeningLotsTable({ form, name, watchPath, unitLabel = 'units' }: Props)
                 </Col>
                 <Col flex="32px">
                   <Button
+                    type="text"
+                    danger
                     aria-label="Remove batch"
                     icon={<Trash2 size={16} />}
                     disabled={fields.length === 1}
                     onClick={() => remove(fname)}
-                    danger
-                    shape="circle"
                   />
                 </Col>
               </Row>

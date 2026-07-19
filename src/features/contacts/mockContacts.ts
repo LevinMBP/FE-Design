@@ -22,9 +22,9 @@ let customers: Customer[] = [
 ]
 
 let vendors: Vendor[] = [
-  { id: 'ven_steelco', company: 'SteelCo Supply', email: 'sales@steelco.ph', contactPerson: 'Diego Lim', contactNumber: '+63 917 555 0210', category: 'Raw Materials', addressLine1: '210 Quirino Hwy', addressLine2: '', city: 'Caloocan', state: 'Metro Manila', postalCode: '1400', country: 'Philippines', latitude: 14.7566, longitude: 121.0447, status: 'active' },
-  { id: 'ven_packright', company: 'PackRight Inc.', email: 'orders@packright.com', contactPerson: 'Ella Tan', contactNumber: '+63 917 555 0234', category: 'Packaging', addressLine1: '34 Industria St', addressLine2: 'Bldg 2', city: 'Valenzuela', state: 'Metro Manila', postalCode: '1440', country: 'Philippines', latitude: 14.7011, longitude: 120.9830, status: 'active' },
-  { id: 'ven_movit', company: 'MovIt Logistics', email: 'ops@movit.ph', contactPerson: 'Franco Dela Cruz', contactNumber: '+63 917 555 0288', category: 'Logistics', addressLine1: '7 Export Ave', addressLine2: '', city: 'Parañaque', state: 'Metro Manila', postalCode: '1700', country: 'Philippines', latitude: 14.4793, longitude: 121.0198, status: 'inactive' },
+  { id: 'ven_steelco', company: 'SteelCo Supply', email: 'sales@steelco.ph', contactPerson: 'Diego Lim', contactNumber: '+63 917 555 0210', addressLine1: '210 Quirino Hwy', addressLine2: '', city: 'Caloocan', state: 'Metro Manila', postalCode: '1400', country: 'Philippines', latitude: 14.7566, longitude: 121.0447, status: 'active' },
+  { id: 'ven_packright', company: 'PackRight Inc.', email: 'orders@packright.com', contactPerson: 'Ella Tan', contactNumber: '+63 917 555 0234', addressLine1: '34 Industria St', addressLine2: 'Bldg 2', city: 'Valenzuela', state: 'Metro Manila', postalCode: '1440', country: 'Philippines', latitude: 14.7011, longitude: 120.9830, status: 'active' },
+  { id: 'ven_movit', company: 'MovIt Logistics', email: 'ops@movit.ph', contactPerson: 'Franco Dela Cruz', contactNumber: '+63 917 555 0288', addressLine1: '7 Export Ave', addressLine2: '', city: 'Parañaque', state: 'Metro Manila', postalCode: '1700', country: 'Philippines', latitude: 14.4793, longitude: 121.0198, status: 'inactive' },
 ]
 
 let employees: Employee[] = [
