@@ -196,7 +196,8 @@ function ItemLedgerPage() {
   }
 
   const item = data?.item
-
+  console.log('ItemLedgerPage', { item })
+  console.log('Ledger Rows', { rows })
   return (
     <div className="module-view">
       <div className="page-head">

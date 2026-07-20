@@ -1,5 +1,6 @@
 import { listMaterials, listProducts } from './mockInventory'
 import { listMovementsForItem, type RawMovement } from './mockMovements'
+import { resolveLocationId } from './mockLocations'
 import type {
   FifoLayer,
   ItemLedger,
@@ -40,14 +41,11 @@ interface FifoResult {
   layers: FifoLayer[]
   stockValue: number
   avgCost: number
+  balance: number // on-hand implied by the replayed movements
 }
 
 /** Replay stored movements through a FIFO queue, producing display rows + layers. */
-function runFifo(
-  itemId: string,
-  itemKind: StockItemKind,
-  moves: RawMovement[],
-): FifoResult {
+function runFifo(itemId: string, itemKind: StockItemKind, moves: RawMovement[]): FifoResult {
   const lots: Lot[] = []
   const valueOf = () => lots.reduce((s, l) => s + l.qty * l.unitCost, 0)
 
@@ -146,52 +144,82 @@ function runFifo(
   const stockValue = round2(valueOf())
   const avgCost = balance > 0 ? round2(stockValue / balance) : 0
 
-  return { rows, layers, stockValue, avgCost }
+  return { rows, layers, stockValue, avgCost, balance }
 }
 
-function materialToItem(m: Material): StockItem {
-  const { stockValue, avgCost } = runFifo(
-    m.id,
-    'material',
-    listMovementsForItem('material', m.id),
-  )
+/**
+ * Movements for one item, optionally narrowed to a single location.
+ *
+ * Unscoped (`locationId` omitted) the whole item history is replayed, which is
+ * what every costing screen wants. Scoped, only the rows physically at that
+ * location are replayed — so `balance` becomes that location's on-hand and the
+ * FIFO layers are that location's own lot queue.
+ */
+function movesFor(kind: StockItemKind, id: string, locationId?: string): RawMovement[] {
+  const all = listMovementsForItem(kind, id)
+  if (!locationId) return all
+  return all.filter((m) => resolveLocationId(m.location) === locationId)
+}
+
+/** Date of the most recent inbound Purchase, i.e. when this item was last ordered in. */
+function lastOrderDate(moves: RawMovement[]): string | null {
+  const orders = moves.filter((m) => m.source === 'Purchase' && m.direction === 'in')
+  return orders.length > 0 ? orders[orders.length - 1].date : null
+}
+
+/** Date of the most recent movement of any kind — when stock last actually changed. */
+function lastUpdatedDate(moves: RawMovement[]): string | null {
+  return moves.length > 0 ? moves[moves.length - 1].date : null
+}
+
+function materialToItem(m: Material, locationId?: string): StockItem {
+  const moves = movesFor('material', m.id, locationId)
+  const { stockValue, avgCost, balance } = runFifo(m.id, 'material', moves)
+  // Unscoped, the master quantity stays authoritative (it is what every other
+  // screen reads); scoped, on-hand can only come from that location's movements.
+  const onHand = locationId ? balance : m.quantity
   return {
     id: m.id,
     kind: 'material',
     name: m.name,
     sku: m.sku,
     unit: m.unit,
-    onHand: m.quantity,
-    status: statusFor(m.quantity, m.minStock),
+    onHand,
+    status: statusFor(onHand, m.minStock),
     avgCost,
     stockValue,
+    lastOrder: lastOrderDate(moves),
+    lastUpdated: lastUpdatedDate(moves),
   }
 }
 
-function productToItem(p: Product): StockItem {
-  const { stockValue, avgCost } = runFifo(
-    p.id,
-    'product',
-    listMovementsForItem('product', p.id),
-  )
+function productToItem(p: Product, locationId?: string): StockItem {
+  const moves = movesFor('product', p.id, locationId)
+  const { stockValue, avgCost, balance } = runFifo(p.id, 'product', moves)
+  const onHand = locationId ? balance : p.quantity
   return {
     id: p.id,
     kind: 'product',
     name: p.name,
     sku: p.sku,
     unit: 'ea',
-    onHand: p.quantity,
-    status: statusFor(p.quantity, 10),
+    onHand,
+    status: statusFor(onHand, 10),
     avgCost,
     stockValue,
+    lastOrder: lastOrderDate(moves),
+    lastUpdated: lastUpdatedDate(moves),
   }
 }
 
-/** Combined product + material list for the stock overview. */
-export function listStockItems(): StockItem[] {
+/**
+ * Combined product + material list for the stock overview. Pass a location id to
+ * report each item as it stands *at that location*; omit it for the whole company.
+ */
+export function listStockItems(locationId?: string): StockItem[] {
   return [
-    ...listProducts().map(productToItem),
-    ...listMaterials().map(materialToItem),
+    ...listProducts().map((p) => productToItem(p, locationId)),
+    ...listMaterials().map((m) => materialToItem(m, locationId)),
   ]
 }
 
@@ -201,11 +229,7 @@ export function listStockItems(): StockItem[] {
  * COGS at the moment of a sale. Call before recording the issue's movement so
  * the layers reflect pre-issue state.
  */
-export function fifoCostToIssue(
-  kind: StockItemKind,
-  id: string,
-  qty: number,
-): number {
+export function fifoCostToIssue(kind: StockItemKind, id: string, qty: number): number {
   const { layers } = runFifo(id, kind, listMovementsForItem(kind, id))
   let remaining = qty
   let cost = 0
@@ -230,10 +254,7 @@ export function currentAvgCost(kind: StockItemKind, id: string): number {
 }
 
 /** Full ledger (rows + FIFO layers) for one item, or null if it doesn't exist. */
-export function getItemLedger(
-  kind: StockItemKind,
-  id: string,
-): ItemLedger | null {
+export function getItemLedger(kind: StockItemKind, id: string): ItemLedger | null {
   if (kind === 'material') {
     const m = listMaterials().find((x) => x.id === id)
     if (!m) return null

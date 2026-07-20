@@ -157,6 +157,19 @@ export const inventoryApi = createApi({
       providesTags: ['Stock'],
     }),
 
+    /**
+     * Stock as it stands at one location. `null` means every location combined,
+     * which is identical to `getStockItems`. Kept separate so the costing screens
+     * that read company-wide figures are never affected by an overview filter.
+     */
+    getStockItemsAtLocation: builder.query<StockItem[], string | null>({
+      queryFn: async (locationId) => {
+        await delay(250)
+        return { data: listStockItems(locationId ?? undefined) }
+      },
+      providesTags: ['Stock'],
+    }),
+
     getItemLedger: builder.query<ItemLedger, { kind: StockItemKind; id: string }>({
       queryFn: async ({ kind, id }) => {
         await delay(250)
@@ -305,6 +318,7 @@ export const {
   useManufactureMutation,
   useGetManufactureRunsQuery,
   useGetStockItemsQuery,
+  useGetStockItemsAtLocationQuery,
   useGetItemLedgerQuery,
   useGetPurchasesQuery,
   useGetNextPurchaseRefQuery,

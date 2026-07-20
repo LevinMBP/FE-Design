@@ -148,6 +148,8 @@ export interface StockItem {
   status: StockStatus
   avgCost: number // FIFO-weighted cost of the remaining on-hand
   stockValue: number // onHand valued at its remaining FIFO lots
+  lastOrder: string | null // ISO date of the last inbound Purchase, null if never ordered
+  lastUpdated: string | null // ISO date of the last movement of any kind
 }
 
 /** A single in/out movement against one item. */
