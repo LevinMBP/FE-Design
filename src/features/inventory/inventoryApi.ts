@@ -7,7 +7,7 @@ import {
   listProducts,
 } from './mockInventory'
 import { getItemLedger, listStockItems } from './mockStockMovements'
-import { listManufactureRuns, runManufacture } from './mockManufacturing'
+import { listManufactureRuns, runManufacture, runManufactureBatch } from './mockManufacturing'
 import { createPurchase, listPurchases, nextPurchaseRef } from './mockPurchases'
 import { recordVendorPayment, listPayments } from './mockPayments'
 import { createSale, listSales } from './mockSales'
@@ -20,6 +20,8 @@ import type {
   Audit,
   InventoryLocation,
   ItemLedger,
+  ManufactureBatchRequest,
+  ManufactureBatchResult,
   ManufactureRequest,
   ManufactureResult,
   ManufactureRun,
@@ -120,6 +122,19 @@ export const inventoryApi = createApi({
         }
       },
       // Producing consumes materials, increases product stock, logs a run.
+      invalidatesTags: ['Material', 'Product', 'Stock', 'ManufactureRun'],
+    }),
+
+    manufactureBatch: builder.mutation<ManufactureBatchResult, ManufactureBatchRequest>({
+      queryFn: async (req) => {
+        await delay(500)
+        try {
+          return { data: runManufactureBatch(req) }
+        } catch (err) {
+          return { error: err instanceof Error ? err.message : 'Manufacturing failed.' }
+        }
+      },
+      // A bulk run consumes materials, increases product stock, logs each run.
       invalidatesTags: ['Material', 'Product', 'Stock', 'ManufactureRun'],
     }),
 
@@ -316,6 +331,7 @@ export const {
   useGetLocationsQuery,
   useAddLocationMutation,
   useManufactureMutation,
+  useManufactureBatchMutation,
   useGetManufactureRunsQuery,
   useGetStockItemsQuery,
   useGetStockItemsAtLocationQuery,

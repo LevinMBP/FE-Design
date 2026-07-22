@@ -215,6 +215,10 @@ export interface ManufactureRequest {
   productId: string
   outputQuantity: number
   lines: ManufactureLine[]
+  /** Where the materials are drawn from (location name, or 'All Locations'). */
+  sourceLocation?: string
+  /** Where the finished product is stored (location name). */
+  destinationLocation?: string
 }
 
 /** A consumed material within a recorded production run, with its FIFO cost. */
@@ -227,9 +231,16 @@ export interface ManufactureRunLine {
   cost: number // quantity * unitCost
 }
 
+/** A worker credited on a production run (drawn from the Employees list). */
+export interface WorkerRef {
+  id: string
+  name: string
+}
+
 /** A recorded manufacturing run for the production history. */
 export interface ManufactureRun {
   id: string
+  reference: string // batch reference, e.g. MO-001 (shared across a bulk run)
   date: string // ISO timestamp
   productId: string
   productName: string
@@ -237,12 +248,29 @@ export interface ManufactureRun {
   lines: ManufactureRunLine[]
   materialCost: number // total FIFO cost of materials consumed
   unitCost: number // materialCost / outputQuantity
+  workers: WorkerRef[] // who produced it
 }
 
 /** Result of a manufacture mutation: the updated product + the logged run. */
 export interface ManufactureResult {
   product: Product
   run: ManufactureRun
+}
+
+/**
+ * A bulk manufacturing submission: several products produced together, sharing
+ * one crew of workers and one batch reference/date. Each item carries its own
+ * recipe-derived material lines.
+ */
+export interface ManufactureBatchRequest {
+  workers: WorkerRef[]
+  items: ManufactureRequest[]
+}
+
+/** Result of a bulk manufacture: the shared reference + every logged run. */
+export interface ManufactureBatchResult {
+  reference: string
+  runs: ManufactureRun[]
 }
 
 /* ------------------------------------------------------------------ *

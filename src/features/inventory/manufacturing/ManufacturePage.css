@@ -61,6 +61,101 @@
   margin-top: 2px;
 }
 
+/* --- Bulk form: one card per product block --- */
+.mfg__block {
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  margin-bottom: 16px;
+}
+.mfg__block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.mfg__block-title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+}
+.mfg__block-cost {
+  display: flex;
+  justify-content: flex-end;
+  gap: 22px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.mfg__block-cost strong {
+  color: var(--text);
+}
+.mfg__add-block {
+  margin-bottom: 4px;
+}
+
+.mfg__hint {
+  display: block;
+  margin: 5px 2px 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-subtle);
+  line-height: 1.4;
+}
+
+.mfg__need {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text);
+}
+.mfg__need-over {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--color-danger-text);
+}
+.mfg__need-none {
+  color: var(--text-subtle);
+}
+
+/* --- Production log landing --- */
+.prod-log__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.prod-log__filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.prod-log__stats {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+.prod-log__stats strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.prod-log__workers {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.prod-log__none {
+  color: var(--text-subtle);
+}
+
 .mfg__summary {
   display: flex;
   gap: 28px;

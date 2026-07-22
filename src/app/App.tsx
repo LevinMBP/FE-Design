@@ -12,7 +12,8 @@ import MaterialsPage from '../features/inventory/materials/MaterialsPage'
 import MaterialFormPage from '../features/inventory/materials/MaterialFormPage'
 import ProductsPage from '../features/inventory/products/ProductsPage'
 import ProductFormPage from '../features/inventory/products/ProductFormPage'
-import ManufacturePage from '../features/inventory/manufacturing/ManufacturePage'
+import ProductionLogPage from '../features/inventory/manufacturing/ProductionLogPage'
+import ManufactureFormPage from '../features/inventory/manufacturing/ManufactureFormPage'
 import StockOverviewPage from '../features/inventory/stock/StockOverviewPage'
 import ItemLedgerPage from '../features/inventory/stock/ItemLedgerPage'
 import OpeningBalancePage from '../features/inventory/opening/OpeningBalancePage'
@@ -114,7 +115,8 @@ function App() {
         <Route path="/inventory/locations" element={<LocationsPage />} />
         <Route path="/inventory/locations/new" element={<LocationFormPage />} />
         <Route path="/inventory/locations/:id" element={<LocationDetailPage />} />
-        <Route path="/inventory/manufacturing" element={<ManufacturePage />} />
+        <Route path="/inventory/manufacturing" element={<ProductionLogPage />} />
+        <Route path="/inventory/manufacturing/new" element={<ManufactureFormPage />} />
         <Route path="/inventory/audits" element={<AuditsPage />} />
         <Route path="/inventory/audits/new" element={<AuditFormPage />} />
         <Route path="/inventory/audits/:id" element={<AuditDetailPage />} />
