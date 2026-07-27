@@ -4,6 +4,7 @@ import RequireAuth from './RequireAuth'
 import { useGetSessionQuery } from '../features/auth/authApi'
 import { selectIsAuthenticated } from '../features/auth/authSlice'
 import { useThemeSync } from '../features/ui/useThemeSync'
+import { useCompanyFavicon } from '../features/admin/useCompanyFavicon'
 import AppShell from '../layout/AppShell'
 import LoginPage from '../features/auth/components/LoginPage'
 import ModuleSelection from '../features/modules/ModuleSelection'
@@ -14,6 +15,16 @@ import ProductsPage from '../features/inventory/products/ProductsPage'
 import ProductFormPage from '../features/inventory/products/ProductFormPage'
 import ProductionLogPage from '../features/inventory/manufacturing/ProductionLogPage'
 import ManufactureFormPage from '../features/inventory/manufacturing/ManufactureFormPage'
+import RequireAdmin from './RequireAdmin'
+import AdminLayout from '../features/admin/AdminLayout'
+import AdminOverview from '../features/admin/AdminOverview'
+import UsersPage from '../features/admin/UsersPage'
+import RolesPage from '../features/admin/RolesPage'
+import PositionsPage from '../features/admin/PositionsPage'
+import OrganizationsPage from '../features/admin/OrganizationsPage'
+import CompanyProfilePage from '../features/admin/CompanyProfilePage'
+import QuotationLayoutPage from '../features/admin/QuotationLayoutPage'
+import AuditLogPage from '../features/admin/AuditLogPage'
 import StockOverviewPage from '../features/inventory/stock/StockOverviewPage'
 import ItemLedgerPage from '../features/inventory/stock/ItemLedgerPage'
 import OpeningBalancePage from '../features/inventory/opening/OpeningBalancePage'
@@ -69,6 +80,7 @@ import SplashLoader from '../shared/components/SplashLoader/SplashLoader'
 
 function App() {
   useThemeSync()
+  useCompanyFavicon()
 
   // Fires once on mount to restore any saved session. While it's in flight we
   // show the splash so we never flash the login screen at a signed-in user.
@@ -183,6 +195,24 @@ function App() {
           element={<IncomeStatementPage />}
         />
         <Route path="/settings" element={<SettingsPage />} />
+      </Route>
+
+      {/* Admin area — its own shell + sub-nav, gated to the admin role. */}
+      <Route
+        element={
+          <RequireAdmin>
+            <AdminLayout />
+          </RequireAdmin>
+        }
+      >
+        <Route path="/admin" element={<AdminOverview />} />
+        <Route path="/admin/users" element={<UsersPage />} />
+        <Route path="/admin/roles" element={<RolesPage />} />
+        <Route path="/admin/positions" element={<PositionsPage />} />
+        <Route path="/admin/organizations" element={<OrganizationsPage />} />
+        <Route path="/admin/company" element={<CompanyProfilePage />} />
+        <Route path="/admin/quotation-layout" element={<QuotationLayoutPage />} />
+        <Route path="/admin/audit-log" element={<AuditLogPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,0 +1,213 @@
+/* Admin area — builds on the shared .shell/.sidebar chrome. */
+
+.admin-sidebar {
+  /* Always expanded; the admin area has no collapse toggle. */
+  width: var(--sidebar-width, 248px);
+}
+
+/* Overview stat tiles */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.admin-stat {
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.admin-stat__value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.admin-stat__label {
+  margin-top: 2px;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+/* Section link cards on the overview */
+.admin-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.admin-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.admin-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+.admin-card__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 10px;
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
+}
+.admin-card__title {
+  font-weight: 600;
+  color: var(--text);
+}
+.admin-card__text {
+  margin-top: 2px;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+/* Access-control matrix */
+.admin-matrix {
+  width: 100%;
+  border-collapse: collapse;
+}
+.admin-matrix th,
+.admin-matrix td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.admin-matrix th:first-child,
+.admin-matrix td:first-child {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+}
+.admin-matrix thead th {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.admin-matrix__role-desc {
+  font-size: var(--font-size-xs);
+  color: var(--text-subtle);
+  font-weight: 400;
+}
+
+/* Quotation layout editor: controls + live preview */
+.qtpl-editor {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.qtpl-editor__preview {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+.qtpl-editor__preview-head {
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: var(--text);
+}
+.qtpl-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+}
+.qtpl-field + .ant-input,
+.qtpl-field + textarea {
+  margin-bottom: 6px;
+}
+.qtpl-field__label {
+  font-weight: 500;
+  color: var(--text);
+}
+.qtpl-field__hint {
+  margin-top: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--text-subtle);
+  max-width: 260px;
+}
+.qtpl-field__control {
+  flex: none;
+}
+.qtpl-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+
+@media (max-width: 1100px) {
+  .qtpl-editor {
+    grid-template-columns: 1fr;
+  }
+  .qtpl-editor__preview {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* Company branding uploads */
+.company-brand {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.company-brand__preview {
+  display: grid;
+  place-items: center;
+  flex: none;
+  overflow: hidden;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-alt);
+}
+.company-brand__preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.company-brand__preview--logo {
+  width: 180px;
+  height: 72px;
+  padding: 8px;
+}
+.company-brand__preview--icon {
+  width: 72px;
+  height: 72px;
+  padding: 6px;
+}
+.company-brand__placeholder {
+  font-size: var(--font-size-xs);
+  color: var(--text-subtle);
+  text-align: center;
+  padding: 0 6px;
+}
+.company-brand__label {
+  font-weight: 600;
+  color: var(--text);
+}
+.company-brand__hint {
+  margin: 2px 0 8px;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  max-width: 360px;
+}
+.company-brand__actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}

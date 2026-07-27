@@ -24,8 +24,74 @@ const uid = (prefix: string) => `${prefix}_${crypto.randomUUID().slice(0, 8)}`
 const round2 = (n: number) => Math.round(n * 100) / 100
 const pad3 = (n: number) => String(n).padStart(3, '0')
 
-let runs: ManufactureRun[] = []
-let moNo = 0
+/** ISO timestamp `days` ago at the given hour — keeps seed dates near today. */
+function daysAgoAt(days: number, hour: number, minute = 0): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  d.setHours(hour, minute, 0, 0)
+  return d.toISOString()
+}
+
+const GAB: WorkerRef = { id: 'emp_gab', name: 'Gabriel Ong' }
+const IVAN: WorkerRef = { id: 'emp_ivan', name: 'Ivan Mercado' }
+
+/**
+ * Seeded history so the production log has something to show on a fresh load.
+ * Display-only: these do NOT deduct materials or add product stock — the seeded
+ * on-hand figures in `mockInventory` already stand for the post-run state.
+ * MO-002 is a bulk run: two products, one crew, one shared reference.
+ */
+let runs: ManufactureRun[] = [
+  {
+    id: 'run_seed_3',
+    reference: 'MO-002',
+    date: daysAgoAt(1, 9, 15),
+    productId: 'prd_table',
+    productName: 'Wooden Table',
+    outputQuantity: 6,
+    lines: [
+      { materialId: 'mat_wood', materialName: 'Wood Plank', unit: 'pc', quantity: 24, unitCost: 5, cost: 120 },
+      { materialId: 'mat_bolt', materialName: 'Steel Bolt M8', unit: 'pc', quantity: 72, unitCost: 0.2, cost: 14.4 },
+      { materialId: 'mat_paint', materialName: 'Paint (White)', unit: 'L', quantity: 6, unitCost: 8, cost: 48 },
+    ],
+    materialCost: 182.4,
+    unitCost: 30.4,
+    workers: [GAB, IVAN],
+  },
+  {
+    id: 'run_seed_2',
+    reference: 'MO-002',
+    date: daysAgoAt(1, 9, 15),
+    productId: 'prd_cabinet',
+    productName: 'Steel Cabinet',
+    outputQuantity: 4,
+    lines: [
+      { materialId: 'mat_steel', materialName: 'Steel Sheet', unit: 'kg', quantity: 8, unitCost: 12, cost: 96 },
+      { materialId: 'mat_bolt', materialName: 'Steel Bolt M8', unit: 'pc', quantity: 32, unitCost: 0.2, cost: 6.4 },
+    ],
+    materialCost: 102.4,
+    unitCost: 25.6,
+    workers: [GAB, IVAN],
+  },
+  {
+    id: 'run_seed_1',
+    reference: 'MO-001',
+    date: daysAgoAt(4, 14, 30),
+    productId: 'prd_cabinet',
+    productName: 'Steel Cabinet',
+    outputQuantity: 10,
+    lines: [
+      { materialId: 'mat_steel', materialName: 'Steel Sheet', unit: 'kg', quantity: 20, unitCost: 12, cost: 240 },
+      { materialId: 'mat_bolt', materialName: 'Steel Bolt M8', unit: 'pc', quantity: 80, unitCost: 0.2, cost: 16 },
+    ],
+    materialCost: 256,
+    unitCost: 25.6,
+    workers: [GAB],
+  },
+]
+
+// Continue numbering after the seeded references so new runs don't collide.
+let moNo = 2
 
 export function listManufactureRuns(): ManufactureRun[] {
   return [...runs]

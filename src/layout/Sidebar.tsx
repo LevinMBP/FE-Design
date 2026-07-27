@@ -30,7 +30,7 @@ const MODULE_SEGMENTS = new Set<string>([
   'accounting',
 ])
 
-function moduleFromPath(pathname: string): ModuleId | null {
+export function moduleFromPath(pathname: string): ModuleId | null {
   const seg = pathname.split('/')[1]
   // Payroll lives inside the merged Finance & Payroll module.
   if (seg === 'payroll') return 'finance'

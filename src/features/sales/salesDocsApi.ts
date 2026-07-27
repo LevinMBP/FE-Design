@@ -11,6 +11,7 @@ import {
   sendInvoice,
   setQuotationStatus,
 } from './mockSalesDocs'
+import { recordAuditEvent } from '../admin/mockAuditLog'
 import type {
   Invoice,
   NewInvoice,
@@ -70,7 +71,9 @@ export const salesDocsApi = createApi({
       queryFn: async (body) => {
         await delay(400)
         try {
-          return { data: createQuotation(body) }
+          const quotation = createQuotation(body)
+          recordAuditEvent({ module: 'sales', action: 'Created quotation', target: quotation.reference })
+          return { data: quotation }
         } catch (err) {
           return fail(err, 'Could not save quotation.')
         }
@@ -105,7 +108,9 @@ export const salesDocsApi = createApi({
       queryFn: async (body) => {
         await delay(500)
         try {
-          return { data: createInvoice(body) }
+          const invoice = createInvoice(body)
+          recordAuditEvent({ module: 'sales', action: 'Created invoice', target: invoice.reference })
+          return { data: invoice }
         } catch (err) {
           return fail(err, 'Could not save invoice.')
         }
@@ -136,7 +141,9 @@ export const salesDocsApi = createApi({
       queryFn: async (id) => {
         await delay(300)
         try {
-          return { data: markInvoicePaid(id) }
+          const invoice = markInvoicePaid(id)
+          recordAuditEvent({ module: 'sales', action: 'Marked invoice paid', target: invoice.reference })
+          return { data: invoice }
         } catch (err) {
           return fail(err, 'Could not update invoice.')
         }

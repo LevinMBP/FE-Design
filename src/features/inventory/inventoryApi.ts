@@ -15,6 +15,7 @@ import { recordOpeningBalance } from './mockOpeningBalance'
 import { addLocation, listLocations } from './mockLocations'
 import { createAudit, listAudits } from './mockAudits'
 import { createAdjustment, listAdjustments } from './mockAdjustments'
+import { recordAuditEvent } from '../admin/mockAuditLog'
 import type {
   Adjustment,
   Audit,
@@ -75,7 +76,9 @@ export const inventoryApi = createApi({
     addLocation: builder.mutation<InventoryLocation, NewLocation>({
       queryFn: async (body) => {
         await delay(400)
-        return { data: addLocation(body) }
+        const location = addLocation(body)
+        recordAuditEvent({ module: 'inventory', action: 'Added location', target: location.name })
+        return { data: location }
       },
       invalidatesTags: ['Location'],
     }),
@@ -91,7 +94,9 @@ export const inventoryApi = createApi({
     addMaterial: builder.mutation<Material, NewMaterial>({
       queryFn: async (body) => {
         await delay(400)
-        return { data: addMaterial(body) }
+        const material = addMaterial(body)
+        recordAuditEvent({ module: 'inventory', action: 'Added material', target: material.name })
+        return { data: material }
       },
       invalidatesTags: ['Material', 'Stock'],
     }),
@@ -107,7 +112,9 @@ export const inventoryApi = createApi({
     addProduct: builder.mutation<Product, NewProduct>({
       queryFn: async (body) => {
         await delay(400)
-        return { data: addProduct(body) }
+        const product = addProduct(body)
+        recordAuditEvent({ module: 'inventory', action: 'Added product', target: product.name })
+        return { data: product }
       },
       invalidatesTags: ['Product', 'Stock'],
     }),
@@ -116,7 +123,14 @@ export const inventoryApi = createApi({
       queryFn: async (req) => {
         await delay(500)
         try {
-          return { data: runManufacture(req) }
+          const result = runManufacture(req)
+          recordAuditEvent({
+            module: 'inventory',
+            action: 'Manufactured product',
+            target: result.run.reference,
+            details: `${result.run.outputQuantity} × ${result.run.productName}`,
+          })
+          return { data: result }
         } catch (err) {
           return { error: err instanceof Error ? err.message : 'Manufacturing failed.' }
         }
@@ -129,7 +143,14 @@ export const inventoryApi = createApi({
       queryFn: async (req) => {
         await delay(500)
         try {
-          return { data: runManufactureBatch(req) }
+          const result = runManufactureBatch(req)
+          recordAuditEvent({
+            module: 'inventory',
+            action: 'Manufactured products',
+            target: result.reference,
+            details: `${result.runs.length} product${result.runs.length === 1 ? '' : 's'}`,
+          })
+          return { data: result }
         } catch (err) {
           return { error: err instanceof Error ? err.message : 'Manufacturing failed.' }
         }
@@ -150,7 +171,13 @@ export const inventoryApi = createApi({
       queryFn: async (body) => {
         await delay(500)
         try {
-          return { data: recordOpeningBalance(body) }
+          const result = recordOpeningBalance(body)
+          recordAuditEvent({
+            module: 'inventory',
+            action: 'Recorded opening balance',
+            details: `${result.itemsPosted} item${result.itemsPosted === 1 ? '' : 's'}`,
+          })
+          return { data: result }
         } catch (err) {
           return {
             error: err instanceof Error ? err.message : 'Could not post opening balance.',
@@ -214,7 +241,9 @@ export const inventoryApi = createApi({
       queryFn: async (body) => {
         await delay(500)
         try {
-          return { data: createPurchase(body) }
+          const purchase = createPurchase(body)
+          recordAuditEvent({ module: 'purchases', action: 'Created purchase', target: purchase.reference })
+          return { data: purchase }
         } catch (err) {
           return { error: err instanceof Error ? err.message : 'Purchase failed.' }
         }
@@ -238,7 +267,14 @@ export const inventoryApi = createApi({
       queryFn: async (body) => {
         await delay(400)
         try {
-          return { data: recordVendorPayment(body) }
+          const payment = recordVendorPayment(body)
+          recordAuditEvent({
+            module: 'purchases',
+            action: 'Recorded vendor payment',
+            target: payment.reference,
+            details: `For ${payment.purchaseRef}`,
+          })
+          return { data: payment }
         } catch (err) {
           return { error: err instanceof Error ? err.message : 'Payment failed.' }
         }
@@ -262,7 +298,9 @@ export const inventoryApi = createApi({
       queryFn: async (body) => {
         await delay(500)
         try {
-          return { data: createSale(body) }
+          const sale = createSale(body)
+          recordAuditEvent({ module: 'sales', action: 'Created sale', target: sale.reference })
+          return { data: sale }
         } catch (err) {
           return { error: err instanceof Error ? err.message : 'Sale failed.' }
         }
@@ -286,7 +324,9 @@ export const inventoryApi = createApi({
       queryFn: async (body) => {
         await delay(400)
         try {
-          return { data: createAudit(body) }
+          const audit = createAudit(body)
+          recordAuditEvent({ module: 'inventory', action: 'Recorded stock audit', target: audit.reference })
+          return { data: audit }
         } catch (err) {
           return { error: err instanceof Error ? err.message : 'Could not save the audit.' }
         }
@@ -307,7 +347,9 @@ export const inventoryApi = createApi({
       queryFn: async (body) => {
         await delay(500)
         try {
-          return { data: createAdjustment(body) }
+          const adjustment = createAdjustment(body)
+          recordAuditEvent({ module: 'inventory', action: 'Posted stock adjustment', target: adjustment.reference })
+          return { data: adjustment }
         } catch (err) {
           return { error: err instanceof Error ? err.message : 'Adjustment failed.' }
         }

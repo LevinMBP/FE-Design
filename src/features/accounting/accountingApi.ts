@@ -9,6 +9,7 @@ import {
   listJournalEntries,
   saveOpeningBalances,
 } from './mockAccounting'
+import { recordAuditEvent } from '../admin/mockAuditLog'
 import type {
   AccountBalance,
   AccountLedger,
@@ -40,6 +41,7 @@ export const accountingApi = createApi({
       queryFn: async (items) => {
         await delay(400)
         saveOpeningBalances(items)
+        recordAuditEvent({ module: 'accounting', action: 'Saved opening balances' })
         return { data: listAccountBalances() }
       },
       invalidatesTags: ['Account'],
@@ -57,7 +59,9 @@ export const accountingApi = createApi({
       queryFn: async (input) => {
         await delay(450)
         const result = addJournalEntry(input)
-        return 'error' in result ? { error: result.error } : { data: result }
+        if ('error' in result) return { error: result.error }
+        recordAuditEvent({ module: 'accounting', action: 'Posted journal entry', target: result.reference })
+        return { data: result }
       },
       invalidatesTags: ['JournalEntry'],
     }),

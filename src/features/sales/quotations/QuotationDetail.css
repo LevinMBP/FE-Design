@@ -1,98 +1,199 @@
-/* Quotation document preview — deliberately rendered as paper (white with
-   dark ink) in both themes so what you see is what prints. */
+/* Quotation rendered as an A4 page — a WYSIWYG stand-in for the QuestPDF the
+   backend generates. White paper with dark ink in both themes so what you see
+   on screen is what prints/exports. */
 
-.quote-doc {
-  max-width: 860px;
-  padding: 32px;
+.pdf-page {
+  width: 100%;
+  max-width: 794px; /* A4 width at 96dpi (210mm) */
+  margin: 0 auto;
   background: #ffffff;
-  color: #111827;
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  color: #1f2937;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.08), 0 12px 34px rgba(17, 24, 39, 0.12);
+  overflow: hidden;
 }
 
-.quote-doc__top {
+.pdf-page__inner {
+  min-height: 1123px; /* A4 height at 96dpi (297mm) — one full page */
+  padding: 48px 46px 30px;
+  display: flex;
+  flex-direction: column;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* ---- Letterhead ---- */
+.qd-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
-  padding-bottom: 16px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #111827;
+  gap: 24px;
 }
-
-.quote-doc__kicker {
-  font-size: 12px;
+/* Logo/brand block moves to the right, title to the left. */
+.qd-head--logo-right {
+  flex-direction: row-reverse;
+}
+.qd-head--logo-right .qd-title {
+  text-align: left;
+}
+.qd-brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.qd-brand__logo {
+  height: 52px;
+  max-width: 220px;
+  object-fit: contain;
+}
+.qd-brand__mark {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: var(--qd-accent, #4f46e5);
+  color: #fff;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+  font-size: 18px;
+}
+.qd-brand__name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+.qd-brand__meta {
+  font-size: 11px;
   color: #6b7280;
 }
 
-.quote-doc__ref {
-  font-size: 24px;
+.qd-title {
+  text-align: right;
+  flex: none;
+}
+.qd-title__word {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--qd-accent, #4f46e5);
+}
+.qd-title__ref {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+.qd-badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: -0.4px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  background: #eef2ff;
+  color: #4338ca;
+}
+.qd-badge--draft { background: #f3f4f6; color: #4b5563; }
+.qd-badge--sent { background: #eff6ff; color: #1d4ed8; }
+.qd-badge--accepted { background: #ecfdf5; color: #047857; }
+.qd-badge--declined { background: #fef2f2; color: #b91c1c; }
+.qd-badge--expired { background: #fff7ed; color: #c2410c; }
+.qd-badge--converted { background: #faf5ff; color: #7e22ce; }
+
+.qd-rule {
+  height: 2px;
+  background: var(--qd-accent, #4f46e5);
+  margin: 16px 0 20px;
 }
 
-.quote-doc__meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+/* ---- Parties + dates ---- */
+.qd-parties {
+  display: flex;
+  justify-content: space-between;
   gap: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 22px;
+  font-size: 12px;
+  color: #374151;
 }
-
-.quote-doc__meta h3 {
-  font-size: 11px;
+.qd-parties__label {
+  margin-bottom: 4px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   color: #6b7280;
-  margin: 0 0 6px;
+}
+.qd-parties__name {
+  font-weight: 700;
+  color: #111827;
+}
+.qd-parties__dates {
+  min-width: 220px;
+}
+.qd-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 2px 0;
+}
+.qd-kv span:first-child {
+  color: #6b7280;
 }
 
-.quote-doc__meta p {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.55;
-}
-
-.quote-doc table.quote-doc__lines {
+/* ---- Line items table ---- */
+.qd-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.5px;
+  /* Fixed layout keeps columns within the page; long text wraps instead of
+     stretching the table past the A4 width (which the page would then clip). */
+  table-layout: fixed;
+  font-size: 12px;
   margin-bottom: 16px;
 }
-
-.quote-doc__lines th {
+/* Column widths come from a <colgroup> (weights normalised per visible column)
+   so hiding a column keeps the table within the page. */
+.qd-table thead th {
+  background: #f3f4f6;
   text-align: left;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: #6b7280;
+  letter-spacing: 0.5px;
+  color: #374151;
   padding: 8px 10px;
   border-bottom: 1px solid #d1d5db;
 }
-
-.quote-doc__lines td {
-  padding: 9px 10px;
-  border-bottom: 1px solid #e5e7eb;
+.qd-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #eceff3;
   vertical-align: top;
+  /* Wrap normal text and break long unbroken strings so nothing overflows. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
-
-.quote-doc__lines .num {
+.qd-table .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-
-.quote-doc__totals {
-  max-width: 320px;
-  margin-left: auto;
-  font-size: 14px;
+.qd-table__item {
+  font-weight: 600;
+  color: #111827;
+}
+.qd-table__empty {
+  padding: 18px 10px;
+  color: #9ca3af;
 }
 
-.quote-doc__totals-row {
+/* ---- Totals ---- */
+.qd-totals {
+  max-width: 280px;
+  margin-left: auto;
+  font-size: 12.5px;
+}
+.qd-totals__row {
   display: flex;
   justify-content: space-between;
   gap: 24px;
@@ -100,93 +201,219 @@
   color: #4b5563;
   font-variant-numeric: tabular-nums;
 }
-
-.quote-doc__totals-row.is-total {
+.qd-totals__row--grand {
   margin-top: 6px;
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 2px solid #111827;
   color: #111827;
-  font-size: 16px;
   font-weight: 700;
+  font-size: 14px;
 }
 
-.quote-doc__notes {
-  margin-top: 20px;
-  font-size: 13.5px;
+/* ---- Notes ---- */
+.qd-notes {
+  margin-top: 22px;
+  font-size: 12px;
+}
+.qd-notes__label {
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #6b7280;
+}
+.qd-notes p {
+  margin: 0;
   color: #4b5563;
   white-space: pre-wrap;
 }
 
-/* ---- Signature blocks ---- */
-.quote-doc__sigs {
+/* ---- Signatures ---- */
+.qd-sigs {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 48px;
-  margin-top: 44px;
-  max-width: 620px;
+  margin-top: 36px;
+  max-width: 560px;
 }
-
-.quote-sig {
+.qd-sig {
   text-align: center;
 }
-
-.quote-sig__img {
+.qd-sig__img {
   display: block;
-  height: 64px;
+  height: 56px;
   margin: 0 auto -6px;
   object-fit: contain;
 }
-
-/* Keeps unsigned blocks the same height as signed ones. */
-.quote-sig__blank {
-  height: 64px;
+.qd-sig__blank {
+  height: 56px;
   margin-bottom: -6px;
 }
-
-.quote-sig__name {
+.qd-sig__name {
   border-top: 1px solid #111827;
   padding-top: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  min-height: 27px;
+  min-height: 26px;
 }
-
-.quote-sig__role {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #6b7280;
+.qd-sig__role {
   margin-top: 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #6b7280;
 }
 
-/* ---- Print: show only the document, edge to edge ---- */
+/* ---- Footer band, pinned to the bottom of the page ---- */
+.qd-foot {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  font-size: 10.5px;
+  color: #9ca3af;
+}
+/* The footer text is client-supplied and can be long — let it wrap (and honour
+   line breaks) instead of running off the page. The right meta stays on one
+   line and doesn't shrink. */
+.qd-foot__note {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.qd-foot__meta {
+  flex: none;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ---- Template options driven by data-attributes on .pdf-page ---- */
+
+/* Paper size */
+.pdf-page[data-paper='A4'] { max-width: 794px; }
+.pdf-page[data-paper='A4'] .pdf-page__inner { min-height: 1123px; }
+.pdf-page[data-paper='Letter'] { max-width: 816px; } /* 8.5in @96dpi */
+.pdf-page[data-paper='Letter'] .pdf-page__inner { min-height: 1056px; } /* 11in */
+
+/* Typography */
+.pdf-page[data-font='sans'] {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.pdf-page[data-font='serif'] {
+  font-family: Georgia, 'Times New Roman', 'Noto Serif', serif;
+}
+
+/* Density → page margins + table cell padding + base size */
+.pdf-page[data-density='compact'] .pdf-page__inner { padding: 32px 34px 24px; font-size: 11.5px; }
+.pdf-page[data-density='compact'] .qd-table { font-size: 11px; }
+.pdf-page[data-density='compact'] .qd-table thead th,
+.pdf-page[data-density='compact'] .qd-table td { padding: 5px 8px; }
+.pdf-page[data-density='relaxed'] .pdf-page__inner { padding: 60px 56px 34px; font-size: 13px; }
+.pdf-page[data-density='relaxed'] .qd-table { font-size: 12.5px; }
+.pdf-page[data-density='relaxed'] .qd-table thead th,
+.pdf-page[data-density='relaxed'] .qd-table td { padding: 11px 12px; }
+
+/* Logo size */
+.pdf-page[data-logo='small'] .qd-brand__logo { height: 40px; }
+.pdf-page[data-logo='small'] .qd-brand__mark { width: 42px; height: 42px; font-size: 15px; }
+.pdf-page[data-logo='large'] .qd-brand__logo { height: 68px; }
+.pdf-page[data-logo='large'] .qd-brand__mark { width: 66px; height: 66px; font-size: 22px; }
+
+/* Accent-filled table header */
+.pdf-page[data-accent-header='on'] .qd-table thead th {
+  background: var(--qd-accent, #4f46e5);
+  color: #ffffff;
+  border-bottom-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Zebra striping */
+.pdf-page[data-zebra='on'] .qd-table tbody tr:nth-child(even) td {
+  background: #f9fafb;
+}
+
+/* ---- Form + live preview split layout ---- */
+.quote-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 900px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.quote-editor__form {
+  max-width: none;
+}
+.quote-editor__preview {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+.quote-editor__preview-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: var(--text);
+}
+.quote-editor__preview-head span {
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* Stack the preview under the form when there isn't room beside it. */
+@media (max-width: 1180px) {
+  .quote-editor {
+    grid-template-columns: 1fr;
+  }
+  .quote-editor__preview {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* ---- Print: show only the page, edge to edge ---- */
 @media print {
   body * {
     visibility: hidden;
   }
-  .quote-doc,
-  .quote-doc * {
+  .pdf-page,
+  .pdf-page * {
     visibility: visible;
   }
-  .quote-doc {
+  .pdf-page {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
     max-width: none;
-    border: none;
+    box-shadow: none;
     border-radius: 0;
+  }
+  .pdf-page__inner {
+    min-height: auto;
     padding: 0;
   }
 }
 
 @media (max-width: 640px) {
-  .quote-doc {
-    padding: 20px;
+  .pdf-page__inner {
+    padding: 26px 22px;
   }
-  .quote-doc__meta,
-  .quote-doc__sigs {
+  .qd-head,
+  .qd-parties,
+  .qd-sigs {
     grid-template-columns: 1fr;
-    gap: 20px;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .qd-title {
+    text-align: left;
   }
 }

@@ -41,7 +41,11 @@ export const authApi = createApi({
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role,
+          organizationId: user.organizationId,
+          roleIds: [...user.roleIds],
+          positionId: user.positionId,
+          userPermissions: [...user.userPermissions],
+          status: user.status,
         }
         const session: Session = {
           user: safeUser,

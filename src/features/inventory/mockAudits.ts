@@ -14,8 +14,75 @@ const uid = () => `aud_${crypto.randomUUID().slice(0, 8)}`
 const round2 = (n: number) => Math.round(n * 100) / 100
 const pad3 = (n: number) => String(n).padStart(3, '0')
 
-let audits: Audit[] = []
-let audNo = 0
+/** ISO date (YYYY-MM-DD) `days` ago — keeps seed dates near today. */
+function daysAgo(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Seeded count history so the audits list isn't empty on a fresh load — one of
+ * each status. Audits never move stock, so these are safe to state literally;
+ * the figures are chosen to stay consistent with the seeded on-hand in
+ * `mockInventory`:
+ *  - AUD-001 balanced → counted == system == today's on-hand
+ *  - AUD-002 adjusted → system is the PRE-adjustment figure; ADJ-003 (seeded in
+ *    `mockAdjustments`) moved it to the counted qty, which is today's on-hand
+ *  - AUD-003 open     → nothing reconciled yet, so system == today's on-hand
+ */
+// prettier-ignore
+let audits: Audit[] = [
+  {
+    id: 'aud_seed_3',
+    reference: 'AUD-003',
+    date: daysAgo(2),
+    itemType: 'product',
+    locationId: 'loc_store',
+    location: 'Store Front',
+    note: 'Monthly retail floor count.',
+    status: 'open',
+    lines: [
+      { kind: 'product', itemId: 'prd_drill', itemName: 'Imported Drill', unit: 'ea', systemQty: 30, countedQty: 28, variance: -2 },
+      { kind: 'product', itemId: 'prd_hinges', itemName: 'Local Hinges', unit: 'ea', systemQty: 200, countedQty: 205, variance: 5 },
+      { kind: 'product', itemId: 'prd_cabinet', itemName: 'Steel Cabinet', unit: 'ea', systemQty: 15, countedQty: 15, variance: 0 },
+    ],
+  },
+  {
+    id: 'aud_seed_2',
+    reference: 'AUD-002',
+    date: daysAgo(6),
+    itemType: 'material',
+    locationId: 'loc_main',
+    location: 'Main Warehouse',
+    note: 'Spot count on fast-moving consumables.',
+    status: 'adjusted',
+    adjustmentId: 'adj_seed_3',
+    adjustmentRef: 'ADJ-003',
+    lines: [
+      { kind: 'material', itemId: 'mat_bolt', itemName: 'Steel Bolt M8', unit: 'pc', systemQty: 46, countedQty: 40, variance: -6 },
+      { kind: 'material', itemId: 'mat_paint', itemName: 'Paint (White)', unit: 'L', systemQty: 78, countedQty: 80, variance: 2 },
+      { kind: 'material', itemId: 'mat_wood', itemName: 'Wood Plank', unit: 'pc', systemQty: 300, countedQty: 300, variance: 0 },
+    ],
+  },
+  {
+    id: 'aud_seed_1',
+    reference: 'AUD-001',
+    date: daysAgo(18),
+    itemType: 'material',
+    locationId: 'loc_main',
+    location: 'Main Warehouse',
+    note: 'Quarterly count — bulk materials only.',
+    status: 'balanced',
+    lines: [
+      { kind: 'material', itemId: 'mat_steel', itemName: 'Steel Sheet', unit: 'kg', systemQty: 500, countedQty: 500, variance: 0 },
+      { kind: 'material', itemId: 'mat_wood', itemName: 'Wood Plank', unit: 'pc', systemQty: 300, countedQty: 300, variance: 0 },
+    ],
+  },
+]
+
+// Continue numbering after the seeded references so new audits don't collide.
+let audNo = 3
 
 export function listAudits(): Audit[] {
   return [...audits]

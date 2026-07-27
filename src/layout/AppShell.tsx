@@ -1,7 +1,11 @@
-import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
-import Sidebar from './Sidebar'
+import { useMemo, useState } from 'react'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import Sidebar, { moduleFromPath } from './Sidebar'
 import ShellTopbar from './ShellTopbar'
+import { useAppSelector } from '../app/hooks'
+import { selectUser } from '../features/auth/authSlice'
+import { selectRbac } from '../features/admin/rbac/rbacSlice'
+import { allowedModulesForUser } from '../features/admin/rbac/mockRbac'
 import './AppShell.css'
 // Shared page-level utility styles (.page-head, .btn, .form-*, etc.) used by
 // every screen rendered inside the shell — imported once here rather than
@@ -15,6 +19,19 @@ function AppShell() {
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem(COLLAPSE_KEY) === '1',
   )
+  const { pathname } = useLocation()
+  const user = useAppSelector(selectUser)
+  const rbac = useAppSelector(selectRbac)
+  const allowedModules = useMemo(
+    () => (user ? allowedModulesForUser(rbac, user) : []),
+    [rbac, user],
+  )
+
+  // Access control: if this path belongs to a module the user can't use, bounce home.
+  const moduleId = moduleFromPath(pathname)
+  if (moduleId && user && !allowedModules.includes(moduleId)) {
+    return <Navigate to="/" replace />
+  }
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {

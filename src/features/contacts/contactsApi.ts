@@ -7,6 +7,7 @@ import {
   listEmployees,
   listVendors,
 } from './mockContacts'
+import { recordAuditEvent } from '../admin/mockAuditLog'
 import type {
   Customer,
   Employee,
@@ -33,7 +34,9 @@ export const contactsApi = createApi({
     addCustomer: builder.mutation<Customer, NewCustomer>({
       queryFn: async (body) => {
         await delay(400)
-        return { data: addCustomer(body) }
+        const customer = addCustomer(body)
+        recordAuditEvent({ module: 'sales', action: 'Added customer', target: customer.company })
+        return { data: customer }
       },
       invalidatesTags: ['Customer'],
     }),
@@ -48,7 +51,9 @@ export const contactsApi = createApi({
     addVendor: builder.mutation<Vendor, NewVendor>({
       queryFn: async (body) => {
         await delay(400)
-        return { data: addVendor(body) }
+        const vendor = addVendor(body)
+        recordAuditEvent({ module: 'purchases', action: 'Added vendor', target: vendor.company })
+        return { data: vendor }
       },
       invalidatesTags: ['Vendor'],
     }),
@@ -63,7 +68,9 @@ export const contactsApi = createApi({
     addEmployee: builder.mutation<Employee, NewEmployee>({
       queryFn: async (body) => {
         await delay(400)
-        return { data: addEmployee(body) }
+        const employee = addEmployee(body)
+        recordAuditEvent({ module: 'payroll', action: 'Added employee', target: employee.name })
+        return { data: employee }
       },
       invalidatesTags: ['Employee'],
     }),

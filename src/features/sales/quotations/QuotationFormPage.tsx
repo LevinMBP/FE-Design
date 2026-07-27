@@ -1,7 +1,8 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { App, Button, Col, DatePicker, Form, Input, Row } from 'antd'
 import dayjs from 'dayjs'
+import { useGetQuotationTemplateQuery } from '../../admin/adminApi'
 import { useAddQuotationMutation } from '../salesDocsApi'
 import { buildLineInputs, useSalesFormData } from '../salesFormShared'
 import type { SignatureBlock } from '../types'
@@ -9,14 +10,24 @@ import ContactFields from '../ContactFields'
 import LineItemsField from '../LineItemsField'
 import TotalsFooter from '../TotalsFooter'
 import SignaturePad from '../../../shared/components/SignaturePad'
+import QuotationPreview from './QuotationPreview'
+import './QuotationDetail.css'
 
 function QuotationFormPage() {
   const navigate = useNavigate()
   const { message } = App.useApp()
   const { items, itemsLoading, itemMeta, customers, taxes } = useSalesFormData()
+  const { data: template } = useGetQuotationTemplateQuery()
   const [addQuotation, { isLoading }] = useAddQuotationMutation()
   const [form] = Form.useForm()
   const submitStatus = useRef<'draft' | 'sent'>('sent')
+
+  // Seed the Notes field from the admin-managed default terms (once, if empty).
+  useEffect(() => {
+    if (template?.defaultTerms && !form.getFieldValue('notes')) {
+      form.setFieldValue('notes', template.defaultTerms)
+    }
+  }, [template, form])
 
   const submitAs = (status: 'draft' | 'sent') => {
     submitStatus.current = status
@@ -69,7 +80,8 @@ function QuotationFormPage() {
         </div>
       </div>
 
-      <div className="form-shell" style={{ maxWidth: 860 }}>
+      <div className="quote-editor">
+        <div className="form-shell quote-editor__form">
         <Form
           form={form}
           layout="vertical"
@@ -169,6 +181,21 @@ function QuotationFormPage() {
             <Button onClick={() => navigate('/sales/quotations')}>Cancel</Button>
           </div>
         </Form>
+        </div>
+
+        <aside className="quote-editor__preview">
+          <div className="quote-editor__preview-head">
+            Live preview
+            <span>Updates as you type — this is what prints/exports.</span>
+          </div>
+          <QuotationPreview
+            form={form}
+            items={items}
+            itemMeta={itemMeta}
+            customers={customers}
+            taxes={taxes}
+          />
+        </aside>
       </div>
     </div>
   )

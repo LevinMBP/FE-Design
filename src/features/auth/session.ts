@@ -27,6 +27,12 @@ export function loadSession(): Session | null {
       clearSession()
       return null
     }
+    // Invalidate sessions saved before the RBAC user shape (no roleIds) so the
+    // user re-logs in cleanly instead of landing with no access.
+    if (!Array.isArray(session.user?.roleIds)) {
+      clearSession()
+      return null
+    }
     return session
   } catch {
     clearSession()

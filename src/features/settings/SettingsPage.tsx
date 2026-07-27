@@ -1,21 +1,19 @@
+import { useMemo } from 'react'
 import { App, Button, Card, Form, Input, Segmented, Tag } from 'antd'
 import { Sun, Moon, Monitor } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { selectUser } from '../auth/authSlice'
+import { selectRbac } from '../admin/rbac/rbacSlice'
+import { roleNamesForUser } from '../admin/rbac/mockRbac'
 import { useUpdateProfileMutation } from '../auth/authApi'
 import { selectTheme, setTheme } from '../ui/uiSlice'
-import type { Role } from '../auth/types'
 import type { ThemePreference } from '../ui/theme'
-
-const ROLE_LABELS: Record<Role, string> = {
-  admin: 'Admin',
-  manager: 'Manager',
-  staff: 'Staff',
-}
 
 function SettingsPage() {
   const user = useAppSelector(selectUser)
   const theme = useAppSelector(selectTheme)
+  const rbac = useAppSelector(selectRbac)
+  const roleNames = useMemo(() => (user ? roleNamesForUser(rbac, user) : []), [rbac, user])
   const dispatch = useAppDispatch()
   const { message } = App.useApp()
   const [updateProfile, { isLoading }] = useUpdateProfileMutation()
@@ -65,8 +63,16 @@ function SettingsPage() {
               <Input value={user.email} disabled />
             </Form.Item>
 
-            <Form.Item label="Role">
-              <Tag color="blue">{ROLE_LABELS[user.role]}</Tag>
+            <Form.Item label="Roles">
+              {roleNames.length > 0 ? (
+                roleNames.map((r) => (
+                  <Tag color="blue" key={r}>
+                    {r}
+                  </Tag>
+                ))
+              ) : (
+                <Tag>No role</Tag>
+              )}
             </Form.Item>
 
             <div className="form-actions">

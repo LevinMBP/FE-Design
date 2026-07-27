@@ -1,15 +1,22 @@
+import { useMemo } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../../app/hooks'
 import { selectUser } from '../auth/authSlice'
+import { selectRbac } from '../admin/rbac/rbacSlice'
+import { allowedModulesForUser } from '../admin/rbac/mockRbac'
 import Topbar from '../../layout/Topbar'
 import { MODULES } from './modules'
 import './ModuleSelection.css'
 
 function ModuleSelection() {
   const user = useAppSelector(selectUser)
+  const rbac = useAppSelector(selectRbac)
   const navigate = useNavigate()
   const firstName = user?.name.split(' ')[0] ?? 'there'
+
+  const allowed = useMemo(() => (user ? allowedModulesForUser(rbac, user) : []), [rbac, user])
+  const visibleModules = MODULES.filter((m) => allowed.includes(m.id))
 
   return (
     <div className="modules">
@@ -22,7 +29,7 @@ function ModuleSelection() {
         </header>
 
         <div className="modules__grid">
-          {MODULES.map((mod) => {
+          {visibleModules.map((mod) => {
             const Icon = mod.icon
             return (
               <button

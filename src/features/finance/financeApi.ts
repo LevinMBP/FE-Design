@@ -5,6 +5,7 @@ import {
   listPaymentMethods,
   listTaxes,
 } from './mockFinance'
+import { recordAuditEvent } from '../admin/mockAuditLog'
 import type {
   NewPaymentMethod,
   NewTax,
@@ -29,7 +30,9 @@ export const financeApi = createApi({
     addTax: builder.mutation<Tax, NewTax>({
       queryFn: async (body) => {
         await delay(400)
-        return { data: addTax(body) }
+        const tax = addTax(body)
+        recordAuditEvent({ module: 'finance', action: 'Added tax', target: tax.name })
+        return { data: tax }
       },
       invalidatesTags: ['Tax'],
     }),
@@ -44,7 +47,9 @@ export const financeApi = createApi({
     addPaymentMethod: builder.mutation<PaymentMethod, NewPaymentMethod>({
       queryFn: async (body) => {
         await delay(400)
-        return { data: addPaymentMethod(body) }
+        const method = addPaymentMethod(body)
+        recordAuditEvent({ module: 'finance', action: 'Added payment method', target: method.name })
+        return { data: method }
       },
       invalidatesTags: ['PaymentMethod'],
     }),

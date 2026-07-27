@@ -34,8 +34,80 @@ const uid = () => `adj_${crypto.randomUUID().slice(0, 8)}`
 const round2 = (n: number) => Math.round(n * 100) / 100
 const pad3 = (n: number) => String(n).padStart(3, '0')
 
-let adjustments: Adjustment[] = []
-let adjNo = 0
+/** ISO date (YYYY-MM-DD) `days` ago — keeps seed dates near today. */
+function daysAgo(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Seeded adjustment history so the list isn't empty on a fresh load. Like the
+ * seeded manufacturing runs these are DISPLAY-ONLY: they do not move stock or
+ * post journals — the seeded on-hand in `mockInventory` already stands for the
+ * post-adjustment state, which is why every line's `countedQty` equals the
+ * item's on-hand today. ADJ-003 is the fast-tracked reconciliation of AUD-002
+ * (see `mockAudits`), so the two records point at each other.
+ * Unit costs follow the opening basis: materials at unit cost, products at 65%
+ * of price.
+ */
+// prettier-ignore
+let adjustments: Adjustment[] = [
+  {
+    id: 'adj_seed_3',
+    reference: 'ADJ-003',
+    date: daysAgo(5),
+    itemType: 'material',
+    locationId: 'loc_main',
+    location: 'Main Warehouse',
+    reason: 'count_correction',
+    note: 'Reconciles the variances counted in AUD-002.',
+    auditId: 'aud_seed_2',
+    auditRef: 'AUD-002',
+    lines: [
+      { kind: 'material', itemId: 'mat_bolt', itemName: 'Steel Bolt M8', unit: 'pc', previousQty: 46, countedQty: 40, delta: -6, unitCost: 0.2, value: -1.2 },
+      { kind: 'material', itemId: 'mat_paint', itemName: 'Paint (White)', unit: 'L', previousQty: 78, countedQty: 80, delta: 2, unitCost: 8, value: 16 },
+    ],
+    inValue: 16,
+    outValue: 1.2,
+    netValue: 14.8,
+  },
+  {
+    id: 'adj_seed_2',
+    reference: 'ADJ-002',
+    date: daysAgo(8),
+    itemType: 'product',
+    locationId: 'loc_main',
+    location: 'Main Warehouse',
+    reason: 'shrinkage',
+    note: 'Two cabinets unaccounted for after the warehouse re-lay.',
+    lines: [
+      { kind: 'product', itemId: 'prd_cabinet', itemName: 'Steel Cabinet', unit: 'ea', previousQty: 17, countedQty: 15, delta: -2, unitCost: 143, value: -286 },
+    ],
+    inValue: 0,
+    outValue: 286,
+    netValue: -286,
+  },
+  {
+    id: 'adj_seed_1',
+    reference: 'ADJ-001',
+    date: daysAgo(11),
+    itemType: 'product',
+    locationId: 'loc_store',
+    location: 'Store Front',
+    reason: 'damage',
+    note: 'Display unit scratched beyond resale; written off.',
+    lines: [
+      { kind: 'product', itemId: 'prd_table', itemName: 'Wooden Table', unit: 'ea', previousQty: 9, countedQty: 8, delta: -1, unitCost: 91, value: -91 },
+    ],
+    inValue: 0,
+    outValue: 91,
+    netValue: -91,
+  },
+]
+
+// Continue numbering after the seeded references so new adjustments don't collide.
+let adjNo = 3
 
 export function listAdjustments(): Adjustment[] {
   return [...adjustments]

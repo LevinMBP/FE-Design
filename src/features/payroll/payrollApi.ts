@@ -7,6 +7,7 @@ import {
   markPayRunPaid,
   setCompensation,
 } from './mockPayroll'
+import { recordAuditEvent } from '../admin/mockAuditLog'
 import type {
   CompensationRow,
   NewPayRunInput,
@@ -33,7 +34,9 @@ export const payrollApi = createApi({
       queryFn: async (input) => {
         await delay(400)
         const result = setCompensation(input)
-        return 'error' in result ? { error: result.error } : { data: result }
+        if ('error' in result) return { error: result.error }
+        recordAuditEvent({ module: 'payroll', action: 'Updated compensation', target: result.employeeName })
+        return { data: result }
       },
       invalidatesTags: ['Compensation'],
     }),
@@ -59,7 +62,9 @@ export const payrollApi = createApi({
       queryFn: async (input) => {
         await delay(500)
         const result = createPayRun(input)
-        return 'error' in result ? { error: result.error } : { data: result }
+        if ('error' in result) return { error: result.error }
+        recordAuditEvent({ module: 'payroll', action: 'Created pay run', target: result.periodLabel })
+        return { data: result }
       },
       invalidatesTags: ['PayRun'],
     }),
@@ -68,7 +73,9 @@ export const payrollApi = createApi({
       queryFn: async (id) => {
         await delay(400)
         const run = markPayRunPaid(id)
-        return run ? { data: run } : { error: 'Pay run not found.' }
+        if (!run) return { error: 'Pay run not found.' }
+        recordAuditEvent({ module: 'payroll', action: 'Marked pay run paid', target: run.periodLabel })
+        return { data: run }
       },
       invalidatesTags: (_result, _error, id) => ['PayRun', { type: 'PayRun', id }],
     }),

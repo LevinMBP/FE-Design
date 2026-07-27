@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Dropdown, type MenuProps } from 'antd'
 import {
   User as UserIcon,
   Bell,
   Settings,
+  Shield,
   LogOut,
   ChevronDown,
   Sun,
@@ -13,6 +14,8 @@ import {
 } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../app/hooks'
 import { selectUser } from '../features/auth/authSlice'
+import { selectRbac } from '../features/admin/rbac/rbacSlice'
+import { isAdminUser, roleNamesForUser } from '../features/admin/rbac/mockRbac'
 import { useLogoutMutation } from '../features/auth/authApi'
 import { useGetNotificationsQuery } from '../features/notifications/notificationsApi'
 import { selectTheme, setTheme } from '../features/ui/uiSlice'
@@ -29,6 +32,9 @@ const themeOptions: { value: ThemePreference; icon: ReactNode; label: string }[]
 function UserMenu() {
   const user = useAppSelector(selectUser)
   const theme = useAppSelector(selectTheme)
+  const rbac = useAppSelector(selectRbac)
+  const isAdmin = useMemo(() => (user ? isAdminUser(rbac, user) : false), [rbac, user])
+  const roleNames = useMemo(() => (user ? roleNamesForUser(rbac, user) : []), [rbac, user])
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [logout] = useLogoutMutation()
@@ -68,6 +74,9 @@ function UserMenu() {
       ),
     },
     { key: 'settings', icon: <Settings size={17} />, label: 'Settings' },
+    ...(isAdmin
+      ? [{ key: 'admin', icon: <Shield size={17} />, label: 'Admin' }]
+      : []),
     { type: 'divider' },
     {
       key: 'theme',
@@ -111,6 +120,7 @@ function UserMenu() {
 
   const onMenuClick: MenuProps['onClick'] = ({ key }) => {
     if (key === 'signout') logout()
+    else if (key === 'admin') navigate('/admin')
     else if (key === 'settings' || key === 'profile') navigate('/settings')
     setOpen(false)
   }
@@ -142,7 +152,7 @@ function UserMenu() {
           </span>
           <span className="user-menu__meta">
             <span className="user-menu__name">{user.name}</span>
-            <span className="user-menu__role">{user.role}</span>
+            <span className="user-menu__role">{roleNames.join(', ') || 'No role'}</span>
           </span>
           <ChevronDown size={16} className="user-menu__chevron" />
         </button>
