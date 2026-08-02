@@ -5,6 +5,7 @@ import { postSaleEntries } from '../accounting/autoPost'
 import { listCustomers } from '../contacts/mockContacts'
 import { listTaxes } from '../finance/mockFinance'
 import { computeTotals, dueDateFrom } from './salesDocMath'
+import { INVENTORY_LOCATIONS } from './types'
 import type {
   DiscountType,
   DocTotals,
@@ -33,6 +34,13 @@ let quotations: Quotation[] = []
 let quoNo = 0
 let invoices: Invoice[] = []
 let invNo = 0
+/** Bumps whenever an invoice is created or changes state — a cache key for
+    derived reports, which must not serve figures from before the change. */
+let invoiceVersion = 0
+
+export function invoicesVersion(): number {
+  return invoiceVersion
+}
 
 /** Resolve form line inputs to full lines (names/units), rejecting empties. */
 function resolveLines(inputs: SalesDocLineInput[]): SalesDocLine[] {
@@ -177,6 +185,7 @@ export function createInvoice(input: NewInvoice): Invoice {
     ...totals,
   }
   invoices = [record, ...invoices]
+  invoiceVersion++
 
   // Mark the origin quotation converted so it can't be reused.
   if (input.quotationId) {
@@ -214,6 +223,19 @@ export function sendInvoice(id: string): Invoice {
   invoices = invoices.map((i) =>
     i.id === id ? { ...i, status: 'sent', issued: true } : i,
   )
+  invoiceVersion++
+  return invoices.find((i) => i.id === id)!
+}
+
+/** Record payment on an issued invoice. */
+export function markInvoicePaid(id: string): Invoice {
+  const inv = invoices.find((i) => i.id === id)
+  if (!inv) throw new Error('Invoice not found.')
+  if (!inv.issued) {
+    throw new Error('Send the invoice before marking it paid.')
+  }
+  invoices = invoices.map((i) => (i.id === id ? { ...i, status: 'paid' } : i))
+  invoiceVersion++
   return invoices.find((i) => i.id === id)!
 }
 
@@ -223,9 +245,10 @@ const iso = (daysFromToday: number) =>
   dayjs().add(daysFromToday, 'day').format('YYYY-MM-DD')
 
 /** Create a quotation through the normal path, then move it along its lifecycle. */
-function seedQuotation(input: NewQuotation, finalStatus?: QuotationStatus): void {
+function seedQuotation(input: NewQuotation, finalStatus?: QuotationStatus): Quotation {
   const q = createQuotation(input)
-  if (finalStatus && finalStatus !== q.status) setQuotationStatus(q.id, finalStatus)
+  if (finalStatus && finalStatus !== q.status) return setQuotationStatus(q.id, finalStatus)
+  return q
 }
 
 // Oldest first so QUO numbering reads naturally (QUO-0001-26 = oldest).
@@ -247,6 +270,28 @@ seedQuotation(
     status: 'sent',
   },
   'expired',
+)
+
+// Accepted then billed — its invoice is seeded below, which flips it to 'converted'.
+const convertedQuote = seedQuotation(
+  {
+    date: iso(-32),
+    effectiveDate: iso(-32),
+    expiryDate: iso(58),
+    customerId: 'cus_luzon',
+    contactPerson: 'Carla Santos',
+    email: 'carla@luzondist.ph',
+    address: '5 Session Rd, Baguio, Benguet 2600',
+    lines: [
+      { itemKind: 'product', itemId: 'prd_hinges', quantity: 60, unitPrice: 3.5, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Pack of 10', description: 'Hardware for the Baguio fit-out' },
+      { itemKind: 'product', itemId: 'prd_table', quantity: 2, unitPrice: 140, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Flat-pack carton', description: '' },
+    ],
+    discountType: 'amount',
+    discountValue: 0,
+    notes: 'Accepted by phone; billed on delivery.',
+    status: 'sent',
+  },
+  'accepted',
 )
 
 seedQuotation(
@@ -328,13 +373,236 @@ seedQuotation({
   status: 'draft',
 })
 
-/** Record payment on an issued invoice. */
-export function markInvoicePaid(id: string): Invoice {
-  const inv = invoices.find((i) => i.id === id)
-  if (!inv) throw new Error('Invoice not found.')
-  if (!inv.issued) {
-    throw new Error('Send the invoice before marking it paid.')
-  }
-  invoices = invoices.map((i) => (i.id === id ? { ...i, status: 'paid' } : i))
-  return invoices.find((i) => i.id === id)!
+/**
+ * Invoices, seeded through `createInvoice` so everything a real entry touches
+ * moves too: an invoice seeded as 'sent' issues its stock and posts the revenue,
+ * output tax and COGS entries. Quantities stay well inside each item's opening
+ * stock so seeding can never fail on availability. Oldest first, so INV
+ * numbering reads naturally (INV-0001-26 = oldest).
+ */
+function seedInvoice(input: NewInvoice, paid = false): Invoice {
+  const inv = createInvoice(input)
+  return paid ? markInvoicePaid(inv.id) : inv
 }
+
+const MAIN = INVENTORY_LOCATIONS[0]
+
+// Earlier months, so the monthly breakdown has a history to accumulate over.
+seedInvoice(
+  {
+    date: iso(-190),
+    deliveryReceipt: 'DR-0912',
+    paymentTerm: 'Net 30',
+    location: MAIN,
+    customerId: 'cus_acme',
+    contactPerson: 'Alice Reyes',
+    email: 'alice@acmeretail.com',
+    address: '12 Ayala Ave, Unit 4B, Makati, Metro Manila 1226',
+    lines: [
+      { itemKind: 'product', itemId: 'prd_drill', quantity: 3, unitPrice: 95, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Box', description: '' },
+    ],
+    discountType: 'amount',
+    discountValue: 0,
+    notes: '',
+    status: 'sent',
+  },
+  true,
+)
+
+seedInvoice(
+  {
+    date: iso(-160),
+    deliveryReceipt: 'DR-0948',
+    paymentTerm: 'Net 30',
+    location: MAIN,
+    customerId: 'cus_north',
+    contactPerson: 'Ben Cruz',
+    email: 'ben@northwind.co',
+    address: '88 Ortigas Center, Pasig, Metro Manila 1605',
+    lines: [
+      { itemKind: 'product', itemId: 'prd_cabinet', quantity: 2, unitPrice: 220, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Crate', description: 'Records room' },
+      { itemKind: 'product', itemId: 'prd_hinges', quantity: 50, unitPrice: 3.5, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Pack of 10', description: '' },
+    ],
+    discountType: 'amount',
+    discountValue: 0,
+    notes: '',
+    status: 'sent',
+  },
+  true,
+)
+
+seedInvoice(
+  {
+    date: iso(-125),
+    deliveryReceipt: 'DR-0977',
+    paymentTerm: 'Net 15',
+    location: MAIN,
+    customerId: 'cus_luzon',
+    contactPerson: 'Carla Santos',
+    email: 'carla@luzondist.ph',
+    address: '5 Session Rd, Baguio, Benguet 2600',
+    lines: [
+      { itemKind: 'product', itemId: 'prd_table', quantity: 2, unitPrice: 140, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Flat-pack carton', description: '' },
+      { itemKind: 'material', itemId: 'mat_paint', quantity: 4, unitPrice: 12, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Can', description: '' },
+    ],
+    discountType: 'percent',
+    discountValue: 10,
+    notes: 'Opening-order discount.',
+    status: 'sent',
+  },
+  true,
+)
+
+seedInvoice(
+  {
+    date: iso(-95),
+    deliveryReceipt: 'DR-1002',
+    paymentTerm: 'Net 30',
+    location: MAIN,
+    customerId: 'cus_north',
+    contactPerson: 'Ben Cruz',
+    email: 'ben@northwind.co',
+    address: '88 Ortigas Center, Pasig, Metro Manila 1605',
+    lines: [
+      { itemKind: 'product', itemId: 'prd_drill', quantity: 5, unitPrice: 90, taxIds: ['tax_vat'], taxIncluded: true, packaging: 'Box', description: 'Price includes VAT' },
+      { itemKind: 'product', itemId: 'prd_hinges', quantity: 20, unitPrice: 3.5, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Pack of 10', description: '' },
+    ],
+    discountType: 'amount',
+    discountValue: 0,
+    notes: '',
+    status: 'sent',
+  },
+  true,
+)
+
+seedInvoice(
+  {
+    date: iso(-70),
+    deliveryReceipt: 'DR-1024',
+    paymentTerm: 'Net 15',
+    location: MAIN,
+    customerId: 'cus_acme',
+    contactPerson: 'Alice Reyes',
+    email: 'alice@acmeretail.com',
+    address: '12 Ayala Ave, Unit 4B, Makati, Metro Manila 1226',
+    lines: [
+      { itemKind: 'product', itemId: 'prd_cabinet', quantity: 3, unitPrice: 220, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Crate', description: 'Branch fit-out' },
+    ],
+    discountType: 'amount',
+    discountValue: 0,
+    notes: '',
+    status: 'sent',
+  },
+  true,
+)
+
+// Settled a while back.
+seedInvoice(
+  {
+    date: iso(-38),
+    deliveryReceipt: 'DR-1041',
+    paymentTerm: 'Net 15',
+    location: MAIN,
+    customerId: 'cus_acme',
+    contactPerson: 'Alice Reyes',
+    email: 'alice@acmeretail.com',
+    address: '12 Ayala Ave, Unit 4B, Makati, Metro Manila 1226',
+    lines: [
+      { itemKind: 'product', itemId: 'prd_drill', quantity: 4, unitPrice: 95, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Box', description: 'Store floor replenishment' },
+    ],
+    discountType: 'amount',
+    discountValue: 0,
+    notes: 'Paid by bank transfer.',
+    status: 'sent',
+  },
+  true,
+)
+
+// Billed off the accepted quotation above, which this flips to 'converted'.
+seedInvoice(
+  {
+    date: iso(-30),
+    deliveryReceipt: 'DR-1058',
+    paymentTerm: 'Net 30',
+    location: MAIN,
+    customerId: convertedQuote.customerId,
+    contactPerson: convertedQuote.contactPerson,
+    email: convertedQuote.email,
+    address: convertedQuote.address,
+    lines: convertedQuote.lines.map((l) => ({
+      itemKind: l.itemKind,
+      itemId: l.itemId,
+      quantity: l.quantity,
+      unitPrice: l.unitPrice,
+      taxIds: l.taxIds,
+      taxIncluded: l.taxIncluded,
+      packaging: l.packaging,
+      description: l.description,
+    })),
+    discountType: convertedQuote.discountType,
+    discountValue: convertedQuote.discountValue,
+    notes: `Converted from ${convertedQuote.reference}.`,
+    status: 'sent',
+    quotationId: convertedQuote.id,
+  },
+  true,
+)
+
+// Overdue — Net 7 on an invoice sent nine days ago.
+seedInvoice({
+  date: iso(-9),
+  deliveryReceipt: 'DR-1072',
+  paymentTerm: 'Net 7',
+  location: MAIN,
+  customerId: 'cus_acme',
+  contactPerson: 'Alice Reyes',
+  email: 'alice@acmeretail.com',
+  address: '12 Ayala Ave, Unit 4B, Makati, Metro Manila 1226',
+  lines: [
+    { itemKind: 'product', itemId: 'prd_cabinet', quantity: 3, unitPrice: 220, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Crate', description: 'Back-office storage' },
+    { itemKind: 'material', itemId: 'mat_paint', quantity: 6, unitPrice: 12, taxIds: ['tax_vat'], taxIncluded: false, packaging: 'Can', description: 'Touch-up paint' },
+  ],
+  discountType: 'percent',
+  discountValue: 5,
+  notes: 'Second follow-up sent.',
+  status: 'sent',
+})
+
+// Open and not yet due; VAT-inclusive pricing.
+seedInvoice({
+  date: iso(-2),
+  deliveryReceipt: 'DR-1080',
+  paymentTerm: 'Net 30',
+  location: MAIN,
+  customerId: 'cus_north',
+  contactPerson: 'Ben Cruz',
+  email: 'ben@northwind.co',
+  address: '88 Ortigas Center, Pasig, Metro Manila 1605',
+  lines: [
+    { itemKind: 'product', itemId: 'prd_drill', quantity: 8, unitPrice: 90, taxIds: ['tax_vat'], taxIncluded: true, packaging: 'Box', description: 'Price includes VAT' },
+    { itemKind: 'product', itemId: 'prd_hinges', quantity: 40, unitPrice: 3.36, taxIds: ['tax_vat'], taxIncluded: true, packaging: 'Pack of 10', description: '' },
+  ],
+  discountType: 'amount',
+  discountValue: 0,
+  notes: '',
+  status: 'sent',
+})
+
+// Draft — nothing issued yet; sending it deducts the stock.
+seedInvoice({
+  date: iso(0),
+  deliveryReceipt: '',
+  paymentTerm: 'Net 60',
+  location: MAIN,
+  customerId: 'cus_luzon',
+  contactPerson: 'Carla Santos',
+  email: 'carla@luzondist.ph',
+  address: '5 Session Rd, Baguio, Benguet 2600',
+  lines: [
+    { itemKind: 'product', itemId: 'prd_table', quantity: 3, unitPrice: 140, taxIds: ['tax_vat_zero'], taxIncluded: false, packaging: 'Flat-pack carton', description: 'Zero-rated export order' },
+  ],
+  discountType: 'amount',
+  discountValue: 0,
+  notes: 'Awaiting export paperwork before release.',
+  status: 'draft',
+})

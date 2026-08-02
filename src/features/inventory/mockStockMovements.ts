@@ -1,5 +1,9 @@
 import { listMaterials, listProducts } from './mockInventory'
-import { listMovementsForItem, type RawMovement } from './mockMovements'
+import {
+  listAllMovements,
+  listMovementsForItem,
+  type RawMovement,
+} from './mockMovements'
 import { resolveLocationId } from './mockLocations'
 import type {
   FifoLayer,
@@ -230,16 +234,92 @@ export function listStockItems(locationId?: string): StockItem[] {
  * the layers reflect pre-issue state.
  */
 export function fifoCostToIssue(kind: StockItemKind, id: string, qty: number): number {
-  const { layers } = runFifo(id, kind, listMovementsForItem(kind, id))
+  // Lean replay rather than the display ledger: this runs on every sale line,
+  // so it must not build a row per movement of the item's whole history.
+  const lots = replayLots(listMovementsForItem(kind, id))
   let remaining = qty
   let cost = 0
-  for (const layer of layers) {
-    if (remaining <= 0) break
-    const take = Math.min(remaining, layer.quantity)
-    cost += take * layer.unitCost
+  for (let i = lots.head; i < lots.qty.length && remaining > 0; i++) {
+    const take = Math.min(remaining, lots.qty[i])
+    cost += take * lots.cost[i]
     remaining -= take
   }
   return round2(cost)
+}
+
+/** The open FIFO lots as parallel arrays, consumed from `head`. */
+interface LotQueue {
+  qty: number[]
+  cost: number[]
+  head: number
+}
+
+/**
+ * Replay movements through a lean FIFO queue, calling `onIssue` with the cost of
+ * the lots each issue consumed. Allocates no ledger rows and no per-row lot
+ * snapshots — the shape to use when only the *cost* is wanted, not the display
+ * ledger. Returns the queue left standing (the remaining layers).
+ */
+function replayLots(
+  moves: RawMovement[],
+  onIssue?: (m: RawMovement, cost: number) => void,
+): LotQueue {
+  const qty: number[] = []
+  const cost: number[] = []
+  let head = 0
+  for (const m of moves) {
+    if (m.direction === 'in') {
+      qty.push(m.quantity)
+      cost.push(m.unitCost)
+      continue
+    }
+    let remaining = m.quantity
+    let consumed = 0
+    while (remaining > 0 && head < qty.length) {
+      const take = Math.min(remaining, qty[head])
+      consumed += take * cost[head]
+      qty[head] -= take
+      remaining -= take
+      if (qty[head] === 0) head++
+    }
+    onIssue?.(m, consumed)
+  }
+  return { qty, cost, head }
+}
+
+/**
+ * FIFO cost of every issue caused by a sale, as
+ * `kind:itemId` → document reference → cost.
+ *
+ * Replays the whole movement table once through a lean lot queue. Unlike
+ * `getItemLedger` it allocates no ledger rows and no per-row lot snapshots, and
+ * it scans the table once instead of once per item — so a margin report stays
+ * linear in movements when a client has thousands of invoices. Non-sale issues
+ * still draw down the queue (they consume the same lots), they just aren't
+ * reported.
+ */
+export function saleCostsByReference(): Map<string, Map<string, number>> {
+  const byItem = new Map<string, RawMovement[]>()
+  for (const m of listAllMovements()) {
+    const key = `${m.itemKind}:${m.itemId}`
+    const moves = byItem.get(key)
+    if (moves) moves.push(m)
+    else byItem.set(key, [m])
+  }
+
+  const result = new Map<string, Map<string, number>>()
+  for (const [key, moves] of byItem) {
+    const costByReference = new Map<string, number>()
+    replayLots(moves, (m, cost) => {
+      if (m.source !== 'Sale') return
+      costByReference.set(
+        m.reference,
+        round2((costByReference.get(m.reference) ?? 0) + cost),
+      )
+    })
+    if (costByReference.size > 0) result.set(key, costByReference)
+  }
+  return result
 }
 
 /**

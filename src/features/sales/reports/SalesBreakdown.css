@@ -1,0 +1,60 @@
+/* Month sections of the Sales Breakdown report. */
+.report-month {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 24px 2px 8px;
+}
+.report-month__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: var(--text);
+}
+.report-month__meta {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ---- Footer rows ----
+   Totals close the records off: a rule above them, a tinted band, and no row
+   hover — they are not records. The cumulative row hangs off the total as a
+   quieter continuation of it. */
+/* Prefixed with the wrapper so these beat antd's own summary-cell rules. */
+.ant-table-wrapper .report-total-row > td.ant-table-cell {
+  background: var(--color-surface-alt);
+  border-top: 2px solid var(--color-border-strong);
+  border-bottom: none;
+  padding-top: 12px;
+  padding-bottom: 8px;
+  color: var(--text);
+}
+.ant-table-wrapper .report-cumulative-row > td.ant-table-cell {
+  background: var(--color-surface-alt);
+  border-top: 1px dashed var(--color-border);
+  padding-top: 8px;
+  padding-bottom: 12px;
+  color: var(--text-muted);
+}
+
+/* The label cell carries the emphasis; figures stay tabular. */
+.report-total-row__label {
+  font-weight: 700;
+  letter-spacing: -0.1px;
+}
+.report-cumulative-row__label {
+  font-weight: 600;
+}
+.report-total-row .report-figure,
+.report-cumulative-row .report-figure {
+  font-variant-numeric: tabular-nums;
+}
+.report-total-row .report-figure {
+  font-weight: 700;
+}
+.report-cumulative-row .report-figure {
+  font-weight: 600;
+}

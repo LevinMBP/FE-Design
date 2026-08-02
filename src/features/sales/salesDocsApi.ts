@@ -12,6 +12,20 @@ import {
   setQuotationStatus,
 } from './mockSalesDocs'
 import { recordAuditEvent } from '../admin/mockAuditLog'
+import {
+  buildMonthlySalesByInvoice,
+  buildMonthlySalesByItem,
+  buildSalesByInvoice,
+  buildSalesByItem,
+} from './salesBreakdown'
+import type {
+  InvoiceSalesRow,
+  ItemSalesRow,
+  SalesBreakdownFilter,
+  SalesByInvoiceReport,
+  SalesByItemReport,
+  SalesByMonthReport,
+} from './salesBreakdown'
 import type {
   Invoice,
   NewInvoice,
@@ -137,6 +151,50 @@ export const salesDocsApi = createApi({
       },
     }),
 
+    /** Sales, cost and margin per item across issued invoices in a date range. */
+    getSalesByItem: builder.query<SalesByItemReport, SalesBreakdownFilter | void>({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildSalesByItem(filter ?? undefined) }
+      },
+      providesTags: ['Invoice'],
+    }),
+
+    /** The same figures grouped by invoice instead of by item. */
+    getSalesByInvoice: builder.query<
+      SalesByInvoiceReport,
+      SalesBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildSalesByInvoice(filter ?? undefined) }
+      },
+      providesTags: ['Invoice'],
+    }),
+
+    /** The same figures split by month: per-month totals plus running totals. */
+    getMonthlySalesByInvoice: builder.query<
+      SalesByMonthReport<InvoiceSalesRow>,
+      SalesBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildMonthlySalesByInvoice(filter ?? undefined) }
+      },
+      providesTags: ['Invoice'],
+    }),
+
+    getMonthlySalesByItem: builder.query<
+      SalesByMonthReport<ItemSalesRow>,
+      SalesBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildMonthlySalesByItem(filter ?? undefined) }
+      },
+      providesTags: ['Invoice'],
+    }),
+
     markInvoicePaid: builder.mutation<Invoice, string>({
       queryFn: async (id) => {
         await delay(300)
@@ -159,6 +217,10 @@ export const {
   useAddQuotationMutation,
   useSetQuotationStatusMutation,
   useGetInvoicesQuery,
+  useGetSalesByItemQuery,
+  useGetSalesByInvoiceQuery,
+  useGetMonthlySalesByInvoiceQuery,
+  useGetMonthlySalesByItemQuery,
   useAddInvoiceMutation,
   useSendInvoiceMutation,
   useMarkInvoicePaidMutation,

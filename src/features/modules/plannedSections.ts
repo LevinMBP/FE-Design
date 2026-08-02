@@ -26,6 +26,7 @@ import {
   Scale,
   LayoutList,
   TrendingUp,
+  BarChart3,
 } from 'lucide-react'
 
 export interface PlannedSection {
@@ -57,6 +58,7 @@ export const SALES_SECTIONS: PlannedSection[] = [
   { icon: ReceiptText, label: 'Invoices', desc: 'Bill customers; sending issues stock out.', to: '/sales/invoices' },
   { icon: Tags, label: 'Orders', desc: 'Direct sales orders that issue stock out.', to: '/sales/orders' },
   { icon: Users, label: 'Customers', desc: 'People and companies you sell to.', to: '/sales/customers' },
+  { icon: BarChart3, label: 'Sales Breakdown', desc: 'Revenue, cost and margin by item or invoice.', to: '/sales/reports/breakdown' },
 ]
 
 export const ACCOUNTING_SECTIONS: PlannedSection[] = [

@@ -50,6 +50,7 @@ import QuotationFormPage from '../features/sales/quotations/QuotationFormPage'
 import QuotationDetailPage from '../features/sales/quotations/QuotationDetailPage'
 import InvoicesPage from '../features/sales/invoices/InvoicesPage'
 import InvoiceFormPage from '../features/sales/invoices/InvoiceFormPage'
+import SalesBreakdownPage from '../features/sales/reports/SalesBreakdownPage'
 import CustomersPage from '../features/contacts/customers/CustomersPage'
 import CustomerFormPage from '../features/contacts/customers/CustomerFormPage'
 import VendorsPage from '../features/contacts/vendors/VendorsPage'
@@ -176,6 +177,7 @@ function App() {
         <Route path="/sales/invoices/new" element={<InvoiceFormPage />} />
         <Route path="/sales/orders" element={<SalesPage />} />
         <Route path="/sales/orders/new" element={<SaleFormPage />} />
+        <Route path="/sales/reports/breakdown" element={<SalesBreakdownPage />} />
         <Route path="/accounting" element={<AccountingModule />} />
         <Route path="/accounting/accounts" element={<ChartOfAccountsPage />} />
         <Route path="/accounting/opening-balances" element={<OpeningBalancesPage />} />

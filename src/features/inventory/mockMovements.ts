@@ -50,9 +50,29 @@ interface AppendInput {
   unitCost: number
 }
 
+/**
+ * Movements grouped by item, maintained as rows are appended. Reads are
+ * per-item and constant in the size of the whole table — without this, every
+ * ledger read (and every sale line, which prices its issue off the ledger)
+ * scans and sorts the entire movement history.
+ */
+const byItem = new Map<string, RawMovement[]>()
+/** Items whose group has a backdated row and needs re-sorting before its next read. */
+const unsorted = new Set<string>()
+
 function append(input: AppendInput): RawMovement {
   const row: RawMovement = { id: uid(), seq: seq++, ...input }
   movements.push(row)
+
+  const key = keyOf(row.itemKind, row.itemId)
+  const group = byItem.get(key)
+  if (!group) {
+    byItem.set(key, [row])
+    return row
+  }
+  // Appends usually run forward in time; only a backdated one needs a re-sort.
+  if (row.date < group[group.length - 1].date) unsorted.add(key)
+  group.push(row)
   return row
 }
 
@@ -164,13 +184,35 @@ export function postOpeningLots(
   openingDone.add(keyOf(kind, id))
 }
 
+/**
+ * The whole movement table, oldest first. Reporting reads this once and groups
+ * it itself, rather than filtering the table per item.
+ */
+export function listAllMovements(): RawMovement[] {
+  ensureOpeningBalances()
+  return [...movements].sort(byDateThenSeq)
+}
+
+/** Bumps on every appended movement — a cheap cache key for derived reports. */
+export function movementsVersion(): number {
+  return seq
+}
+
+const byDateThenSeq = (a: RawMovement, b: RawMovement) =>
+  a.date === b.date ? a.seq - b.seq : a.date.localeCompare(b.date)
+
 /** All stored movements for one item, oldest first (opening anchors the list). */
 export function listMovementsForItem(
   kind: StockItemKind,
   id: string,
 ): RawMovement[] {
   ensureOpeningBalances()
-  return movements
-    .filter((m) => m.itemKind === kind && m.itemId === id)
-    .sort((a, b) => (a.date === b.date ? a.seq - b.seq : a.date.localeCompare(b.date)))
+  const key = keyOf(kind, id)
+  const group = byItem.get(key)
+  if (!group) return []
+  if (unsorted.has(key)) {
+    group.sort(byDateThenSeq)
+    unsorted.delete(key)
+  }
+  return [...group] // a copy: callers must not reach into the index
 }

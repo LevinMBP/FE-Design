@@ -25,6 +25,31 @@ export interface TotalsLine {
 }
 
 /**
+ * Strip tax out of a line amount when the price includes it, otherwise the
+ * amount is already net. The single definition of "net", shared by the totals
+ * engine and the sales-by-item report so a line is never valued two ways.
+ */
+const netOfAmount = (amount: number, combinedRate: number, taxIncluded: boolean) =>
+  taxIncluded && combinedRate > 0 ? amount / (1 + combinedRate) : amount
+
+/** Combined rate (as a fraction) of the taxes a line attracts. */
+const combinedRateOf = (taxIds: string[] | undefined, taxes: Tax[]) =>
+  (taxIds ?? []).reduce(
+    (s, id) => s + (taxes.find((t) => t.id === id)?.rate ?? 0),
+    0,
+  ) / 100
+
+/**
+ * One line's net (tax-excluded, pre-discount) value — what the line contributes
+ * to a document's subtotal. Used by reporting to split a document's revenue
+ * back out per item.
+ */
+export function lineNetValue(line: TotalsLine, taxes: Tax[]): number {
+  const amount = (line.quantity || 0) * (line.unitPrice || 0)
+  return netOfAmount(amount, combinedRateOf(line.taxIds, taxes), line.taxIncluded)
+}
+
+/**
  * Compute a document's money breakdown with per-line taxes.
  *
  * Each line carries its own tax selection (possibly several — e.g. 5% + 8%
@@ -53,7 +78,7 @@ export function computeTotals(
     const amount = (l.quantity || 0) * (l.unitPrice || 0)
     const applied = lineTaxes(l)
     const combinedRate = applied.reduce((s, t) => s + t.rate, 0) / 100
-    const lineNet = l.taxIncluded && combinedRate > 0 ? amount / (1 + combinedRate) : amount
+    const lineNet = netOfAmount(amount, combinedRate, l.taxIncluded)
     net += lineNet
     for (const t of applied) {
       perTax.set(t.id, (perTax.get(t.id) ?? 0) + lineNet * (t.rate / 100))
