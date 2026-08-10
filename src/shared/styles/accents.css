@@ -1,0 +1,41 @@
+/* ---- Module accent palette ----
+   Single source for the tinted icon chips that identify a module, used by the
+   launcher cards and the sidebar module switcher. Set `data-accent` on the chip
+   element (values match `ModuleAccent` in features/modules/modules.ts). */
+
+[data-accent='brand'] {
+  --accent-bg: rgba(79, 70, 229, 0.12);
+  --accent-fg: var(--brand);
+}
+[data-accent='green'] {
+  --accent-bg: rgba(16, 185, 129, 0.14);
+  --accent-fg: #0f9d6e;
+}
+[data-accent='amber'] {
+  --accent-bg: rgba(234, 179, 8, 0.16);
+  --accent-fg: #b45309;
+}
+[data-accent='violet'] {
+  --accent-bg: rgba(124, 58, 237, 0.14);
+  --accent-fg: #7c3aed;
+}
+[data-accent='sky'] {
+  --accent-bg: rgba(14, 165, 233, 0.14);
+  --accent-fg: #0284c7;
+}
+[data-accent='rose'] {
+  --accent-bg: rgba(244, 63, 94, 0.14);
+  --accent-fg: #e11d48;
+}
+[data-accent='emerald'] {
+  --accent-bg: rgba(16, 185, 129, 0.14);
+  --accent-fg: #059669;
+}
+
+.accent-chip {
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--accent-bg);
+  color: var(--accent-fg);
+}

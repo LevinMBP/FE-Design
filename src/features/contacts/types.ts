@@ -1,3 +1,9 @@
+import type { SoftDeletable } from '../../shared/softDelete'
+
+/**
+ * Whether you currently do business with this contact — a state the user picks.
+ * Distinct from deletion (`deletedAt`), which removes the record from lists.
+ */
 export type ContactStatus = 'active' | 'inactive'
 
 /** Shared address + geo details for customers and vendors. */
@@ -12,7 +18,7 @@ export interface ContactAddress {
   longitude: number
 }
 
-export interface Customer extends ContactAddress {
+export interface Customer extends ContactAddress, SoftDeletable {
   id: string
   company: string
   email: string
@@ -21,7 +27,7 @@ export interface Customer extends ContactAddress {
   status: ContactStatus
 }
 
-export interface Vendor extends ContactAddress {
+export interface Vendor extends ContactAddress, SoftDeletable {
   id: string
   company: string
   email: string
@@ -30,7 +36,7 @@ export interface Vendor extends ContactAddress {
   status: ContactStatus
 }
 
-export interface Employee {
+export interface Employee extends SoftDeletable {
   id: string
   name: string
   email: string
@@ -40,9 +46,10 @@ export interface Employee {
   status: ContactStatus
 }
 
-export type NewCustomer = Omit<Customer, 'id'>
-export type NewVendor = Omit<Vendor, 'id'>
-export type NewEmployee = Omit<Employee, 'id'>
+// Delete stamps are set by the server, never submitted from a form.
+export type NewCustomer = Omit<Customer, 'id' | keyof SoftDeletable>
+export type NewVendor = Omit<Vendor, 'id' | keyof SoftDeletable>
+export type NewEmployee = Omit<Employee, 'id' | keyof SoftDeletable>
 
 /** Departments offered in the employee form. */
 export const DEPARTMENTS = [

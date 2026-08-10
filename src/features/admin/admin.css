@@ -5,6 +5,65 @@
   width: var(--sidebar-width, 248px);
 }
 
+/* Section label + "Back to app" card. These used to live in Sidebar.css, but
+   the main sidebar now leads with the module switcher instead, so the admin
+   area is the only consumer left. No collapsed variants — see above. */
+.admin-sidebar__label {
+  padding: 0 10px;
+  margin-bottom: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-subtle);
+}
+
+.admin-sidebar__card {
+  display: grid;
+  gap: 2px;
+  padding: 13px;
+  border-radius: 13px;
+  background: linear-gradient(150deg, var(--color-primary), var(--color-primary-active));
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 8px 20px -12px var(--brand-glow);
+  transition: filter 0.15s, transform 0.05s;
+}
+/* Keep white text/icon on hover — the global `a:hover` colour would otherwise
+   tint them into the card's dark gradient and make them vanish. The child
+   rules are explicit belt-and-suspenders in case another anchor rule wins. */
+.admin-sidebar__card:hover {
+  color: #fff;
+  filter: brightness(1.08);
+  box-shadow: 0 10px 22px -10px var(--brand-glow);
+}
+.admin-sidebar__card:hover .admin-sidebar__card-title,
+.admin-sidebar__card:hover .admin-sidebar__card-text,
+.admin-sidebar__card:hover .admin-sidebar__card-icon {
+  color: #fff;
+}
+.admin-sidebar__card:active {
+  transform: translateY(1px);
+}
+.admin-sidebar__card-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.16);
+  margin-bottom: 5px;
+}
+.admin-sidebar__card-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+.admin-sidebar__card-text {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.82);
+}
+
 /* Overview stat tiles */
 .admin-stats {
   display: grid;

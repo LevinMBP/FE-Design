@@ -1,11 +1,14 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Button, Skeleton, Tag } from 'antd'
+import { App, Button, Skeleton, Tag } from 'antd'
 import { ArrowLeft, Truck, MapPin, ShoppingCart, Plus, Wallet } from 'lucide-react'
 import dayjs from 'dayjs'
-import { useGetVendorsQuery } from '../contactsApi'
+import { useGetVendorsQuery, useRestoreVendorMutation } from '../contactsApi'
 import { useGetPurchasesQuery } from '../../inventory/inventoryApi'
 import { purchasePaymentStatus, type PaymentStatus } from '../../inventory/types'
 import type { Vendor } from '../types'
+import { isDeleted } from '../../../shared/softDelete'
+import DeletedBanner from '../../../shared/components/DeletedBanner'
+import { useIsAdmin } from '../../admin/rbac/useIsAdmin'
 import '../../../shared/styles/detail.css'
 
 const peso = (v: number) =>
@@ -32,8 +35,19 @@ function DueChip({ dueDate }: { dueDate: string }) {
 function VendorDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { data: vendors, isLoading } = useGetVendorsQuery()
+  const { message } = App.useApp()
+  const isAdmin = useIsAdmin()
+  // Scope 'all': deleted vendors stay reachable from the purchases and payables
+  // that reference them, so this page must resolve them rather than 404.
+  const { data: vendors, isLoading } = useGetVendorsQuery('all')
   const { data: purchases } = useGetPurchasesQuery()
+  const [restoreVendor, { isLoading: restoring }] = useRestoreVendorMutation()
+
+  const onRestore = async () => {
+    const res = await restoreVendor(id)
+    if ('error' in res) message.error(String(res.error))
+    else message.success('Vendor restored')
+  }
 
   if (isLoading) {
     return (
@@ -72,6 +86,7 @@ function VendorDetailPage() {
   const outstanding = openBills.reduce((sum, p) => sum + (p.netPayable - p.amountPaid), 0)
   const address = addressOf(vendor)
   const active = vendor.status === 'active'
+  const deleted = isDeleted(vendor)
 
   const story =
     `${vendor.company} is ${active ? 'an active' : 'an inactive'} vendor` +
@@ -91,6 +106,14 @@ function VendorDetailPage() {
         <ArrowLeft size={16} /> Back to vendors
       </Link>
 
+      <DeletedBanner
+        record={vendor}
+        entityLabel="vendor"
+        canRestore={isAdmin}
+        onRestore={onRestore}
+        restoring={restoring}
+      />
+
       <article className="idp">
         <header className="idp__hero idp__hero--vendor">
           <div className="idp__avatar">{(vendor.company[0] ?? '?').toUpperCase()}</div>
@@ -107,6 +130,7 @@ function VendorDetailPage() {
             <Tag color={active ? 'success' : 'default'} style={{ marginInlineStart: 6 }}>
               {active ? 'Active' : 'Inactive'}
             </Tag>
+            {deleted && <Tag color="error">Deleted</Tag>}
           </div>
         </header>
 
@@ -209,13 +233,16 @@ function VendorDetailPage() {
           )}
         </section>
 
-        <div className="idp__actions">
-          <Link to="/purchases/orders/new">
-            <Button type="primary" icon={<Plus size={16} />}>
-              New purchase
-            </Button>
-          </Link>
-        </div>
+        {/* No new business against a deleted vendor — restore them first. */}
+        {!deleted && (
+          <div className="idp__actions">
+            <Link to="/purchases/orders/new">
+              <Button type="primary" icon={<Plus size={16} />}>
+                New purchase
+              </Button>
+            </Link>
+          </div>
+        )}
       </article>
     </div>
   )

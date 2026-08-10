@@ -1,10 +1,13 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Button, Skeleton, Tag } from 'antd'
+import { App, Button, Skeleton, Tag } from 'antd'
 import { ArrowLeft, User, MapPin, Receipt, Plus } from 'lucide-react'
 import dayjs from 'dayjs'
-import { useGetCustomersQuery } from '../contactsApi'
+import { useGetCustomersQuery, useRestoreCustomerMutation } from '../contactsApi'
 import { useGetSalesQuery } from '../../inventory/inventoryApi'
 import type { Customer } from '../types'
+import { isDeleted } from '../../../shared/softDelete'
+import DeletedBanner from '../../../shared/components/DeletedBanner'
+import { useIsAdmin } from '../../admin/rbac/useIsAdmin'
 import '../../../shared/styles/detail.css'
 
 const peso = (v: number) =>
@@ -18,8 +21,19 @@ const addressOf = (c: Customer) =>
 function CustomerDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { data: customers, isLoading } = useGetCustomersQuery()
+  const { message } = App.useApp()
+  const isAdmin = useIsAdmin()
+  // Scope 'all' on purpose: a deleted customer is still linked from every sales
+  // order they ever placed, so this page has to resolve them rather than 404.
+  const { data: customers, isLoading } = useGetCustomersQuery('all')
   const { data: sales } = useGetSalesQuery()
+  const [restoreCustomer, { isLoading: restoring }] = useRestoreCustomerMutation()
+
+  const onRestore = async () => {
+    const res = await restoreCustomer(id)
+    if ('error' in res) message.error(String(res.error))
+    else message.success('Customer restored')
+  }
 
   if (isLoading) {
     return (
@@ -53,6 +67,7 @@ function CustomerDetailPage() {
     .at(-1)
   const address = addressOf(customer)
   const active = customer.status === 'active'
+  const deleted = isDeleted(customer)
 
   const story =
     `${customer.company} is ${active ? 'an active' : 'an inactive'} customer` +
@@ -68,6 +83,14 @@ function CustomerDetailPage() {
       <Link to="/sales/customers" className="idp__back">
         <ArrowLeft size={16} /> Back to customers
       </Link>
+
+      <DeletedBanner
+        record={customer}
+        entityLabel="customer"
+        canRestore={isAdmin}
+        onRestore={onRestore}
+        restoring={restoring}
+      />
 
       <article className="idp">
         <header className="idp__hero idp__hero--customer">
@@ -85,6 +108,7 @@ function CustomerDetailPage() {
             <Tag color={active ? 'success' : 'default'} style={{ marginInlineStart: 6 }}>
               {active ? 'Active' : 'Inactive'}
             </Tag>
+            {deleted && <Tag color="error">Deleted</Tag>}
           </div>
         </header>
 
@@ -133,13 +157,16 @@ function CustomerDetailPage() {
           )}
         </section>
 
-        <div className="idp__actions">
-          <Link to="/sales/orders/new">
-            <Button type="primary" icon={<Plus size={16} />}>
-              New sale
-            </Button>
-          </Link>
-        </div>
+        {/* No new business against a deleted customer — restore them first. */}
+        {!deleted && (
+          <div className="idp__actions">
+            <Link to="/sales/orders/new">
+              <Button type="primary" icon={<Plus size={16} />}>
+                New sale
+              </Button>
+            </Link>
+          </div>
+        )}
       </article>
     </div>
   )

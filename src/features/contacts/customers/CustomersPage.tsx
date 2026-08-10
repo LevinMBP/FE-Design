@@ -1,11 +1,23 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Button, Table, Tag } from 'antd'
+import { App, Button, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { Plus } from 'lucide-react'
-import { useGetCustomersQuery } from '../contactsApi'
+import {
+  useDeleteCustomerMutation,
+  useGetCustomersQuery,
+  useRestoreCustomerMutation,
+} from '../contactsApi'
 import type { Customer } from '../types'
+import type { ListScope } from '../../../shared/softDelete'
+import ScopeFilter from '../../../shared/components/ScopeFilter'
+import {
+  deletedRowClassName,
+  softDeleteColumns,
+} from '../../../shared/components/softDeleteColumns'
+import { useIsAdmin } from '../../admin/rbac/useIsAdmin'
 
-const columns: ColumnsType<Customer> = [
+const baseColumns: ColumnsType<Customer> = [
   {
     title: 'Company',
     dataIndex: 'company',
@@ -48,7 +60,47 @@ const columns: ColumnsType<Customer> = [
 ]
 
 function CustomersPage() {
-  const { data: customers, isLoading } = useGetCustomersQuery()
+  const { message } = App.useApp()
+  const isAdmin = useIsAdmin()
+  const [scope, setScope] = useState<ListScope>('active')
+  const { data: customers, isFetching } = useGetCustomersQuery(scope)
+  const [deleteCustomer, { isLoading: deleting, originalArgs: deletingId }] =
+    useDeleteCustomerMutation()
+  const [restoreCustomer, { isLoading: restoring, originalArgs: restoringId }] =
+    useRestoreCustomerMutation()
+
+  const columns = useMemo<ColumnsType<Customer>>(
+    () => [
+      ...baseColumns,
+      ...softDeleteColumns<Customer>(scope !== 'active', {
+        entityLabel: 'customer',
+        describe: (r) => r.company,
+        canRestore: isAdmin,
+        pendingId: deleting ? deletingId : restoring ? restoringId : null,
+        onDelete: async (r) => {
+          const res = await deleteCustomer(r.id)
+          if ('error' in res) message.error(String(res.error))
+          else message.success(`${r.company} deleted`)
+        },
+        onRestore: async (r) => {
+          const res = await restoreCustomer(r.id)
+          if ('error' in res) message.error(String(res.error))
+          else message.success(`${r.company} restored`)
+        },
+      }),
+    ],
+    [
+      scope,
+      isAdmin,
+      deleting,
+      deletingId,
+      restoring,
+      restoringId,
+      deleteCustomer,
+      restoreCustomer,
+      message,
+    ],
+  )
 
   return (
     <div className="module-view">
@@ -64,11 +116,17 @@ function CustomersPage() {
         </Link>
       </div>
 
+      <ScopeFilter value={scope} onChange={setScope} />
+
       <Table<Customer>
         rowKey="id"
         columns={columns}
         dataSource={customers}
-        loading={isLoading}
+        loading={isFetching}
+        rowClassName={deletedRowClassName}
+        locale={{
+          emptyText: scope === 'deleted' ? 'No deleted customers.' : 'No customers yet.',
+        }}
         pagination={{ pageSize: 10, hideOnSinglePage: true, showSizeChanger: true }}
         scroll={{ x: 'max-content' }}
       />

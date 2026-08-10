@@ -451,6 +451,21 @@
   font-size: 14.5px;
 }
 
+/* ---- Soft-deleted table rows ----
+   Dimmed so deleted records read as recoverable history rather than live data,
+   without hiding any of the columns needed to decide whether to restore. */
+.row--deleted > td {
+  opacity: 0.55;
+}
+.row--deleted:hover > td {
+  opacity: 0.85;
+}
+/* Keep the actions cell fully legible — Restore has to stay easy to hit. */
+.row--deleted > td:last-child,
+.row--deleted:hover > td:last-child {
+  opacity: 1;
+}
+
 @media (max-width: 560px) {
   .form-row {
     grid-template-columns: 1fr;

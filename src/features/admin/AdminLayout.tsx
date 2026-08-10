@@ -39,7 +39,7 @@ function AdminLayout() {
           </Link>
         </div>
 
-        <div className="sidebar__module-label">Administration</div>
+        <div className="admin-sidebar__label">Administration</div>
 
         <nav className="sidebar__nav">
           {NAV.map(({ to, label, icon: Icon, end }) => (
@@ -57,12 +57,12 @@ function AdminLayout() {
 
         <div className="sidebar__spacer" />
 
-        <Link to="/" className="sidebar__card">
-          <span className="sidebar__card-icon">
+        <Link to="/" className="admin-sidebar__card">
+          <span className="admin-sidebar__card-icon">
             <ArrowLeft size={18} />
           </span>
-          <span className="sidebar__card-title">Back to app</span>
-          <span className="sidebar__card-text">Return to the module launcher.</span>
+          <span className="admin-sidebar__card-title">Back to app</span>
+          <span className="admin-sidebar__card-text">Return to the module launcher.</span>
         </Link>
       </aside>
 

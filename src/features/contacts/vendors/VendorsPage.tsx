@@ -1,11 +1,23 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Button, Table, Tag } from 'antd'
+import { App, Button, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { Plus } from 'lucide-react'
-import { useGetVendorsQuery } from '../contactsApi'
+import {
+  useDeleteVendorMutation,
+  useGetVendorsQuery,
+  useRestoreVendorMutation,
+} from '../contactsApi'
 import type { Vendor } from '../types'
+import type { ListScope } from '../../../shared/softDelete'
+import ScopeFilter from '../../../shared/components/ScopeFilter'
+import {
+  deletedRowClassName,
+  softDeleteColumns,
+} from '../../../shared/components/softDeleteColumns'
+import { useIsAdmin } from '../../admin/rbac/useIsAdmin'
 
-const columns: ColumnsType<Vendor> = [
+const baseColumns: ColumnsType<Vendor> = [
   {
     title: 'Company',
     dataIndex: 'company',
@@ -47,7 +59,47 @@ const columns: ColumnsType<Vendor> = [
 ]
 
 function VendorsPage() {
-  const { data: vendors, isLoading } = useGetVendorsQuery()
+  const { message } = App.useApp()
+  const isAdmin = useIsAdmin()
+  const [scope, setScope] = useState<ListScope>('active')
+  const { data: vendors, isFetching } = useGetVendorsQuery(scope)
+  const [deleteVendor, { isLoading: deleting, originalArgs: deletingId }] =
+    useDeleteVendorMutation()
+  const [restoreVendor, { isLoading: restoring, originalArgs: restoringId }] =
+    useRestoreVendorMutation()
+
+  const columns = useMemo<ColumnsType<Vendor>>(
+    () => [
+      ...baseColumns,
+      ...softDeleteColumns<Vendor>(scope !== 'active', {
+        entityLabel: 'vendor',
+        describe: (r) => r.company,
+        canRestore: isAdmin,
+        pendingId: deleting ? deletingId : restoring ? restoringId : null,
+        onDelete: async (r) => {
+          const res = await deleteVendor(r.id)
+          if ('error' in res) message.error(String(res.error))
+          else message.success(`${r.company} deleted`)
+        },
+        onRestore: async (r) => {
+          const res = await restoreVendor(r.id)
+          if ('error' in res) message.error(String(res.error))
+          else message.success(`${r.company} restored`)
+        },
+      }),
+    ],
+    [
+      scope,
+      isAdmin,
+      deleting,
+      deletingId,
+      restoring,
+      restoringId,
+      deleteVendor,
+      restoreVendor,
+      message,
+    ],
+  )
 
   return (
     <div className="module-view">
@@ -63,11 +115,15 @@ function VendorsPage() {
         </Link>
       </div>
 
+      <ScopeFilter value={scope} onChange={setScope} />
+
       <Table<Vendor>
         rowKey="id"
         columns={columns}
         dataSource={vendors}
-        loading={isLoading}
+        loading={isFetching}
+        rowClassName={deletedRowClassName}
+        locale={{ emptyText: scope === 'deleted' ? 'No deleted vendors.' : 'No vendors yet.' }}
         pagination={{ pageSize: 10, hideOnSinglePage: true, showSizeChanger: true }}
         scroll={{ x: 'max-content' }}
       />

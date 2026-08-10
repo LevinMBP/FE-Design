@@ -7,6 +7,7 @@ import { selectRbac } from '../admin/rbac/rbacSlice'
 import { allowedModulesForUser } from '../admin/rbac/mockRbac'
 import Topbar from '../../layout/Topbar'
 import { MODULES } from './modules'
+import '../../shared/styles/accents.css'
 import './ModuleSelection.css'
 
 function ModuleSelection() {
@@ -38,7 +39,7 @@ function ModuleSelection() {
                 className="module-card"
                 onClick={() => navigate(`/${mod.id}`)}
               >
-                <span className={`module-card__icon module-card__icon--${mod.accent}`}>
+                <span className="accent-chip module-card__icon" data-accent={mod.accent}>
                   <Icon size={24} />
                 </span>
                 <span className="module-card__body">

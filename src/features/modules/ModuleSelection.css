@@ -50,41 +50,12 @@
   transform: translateY(-2px);
 }
 
+/* Colours come from `.accent-chip` + `data-accent` in shared/styles/accents.css,
+   shared with the sidebar module switcher. */
 .module-card__icon {
-  flex: none;
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  display: grid;
-  place-items: center;
-}
-.module-card__icon--brand {
-  background: rgba(79, 70, 229, 0.12);
-  color: var(--brand);
-}
-.module-card__icon--green {
-  background: rgba(16, 185, 129, 0.14);
-  color: #0f9d6e;
-}
-.module-card__icon--amber {
-  background: rgba(234, 179, 8, 0.16);
-  color: #b45309;
-}
-.module-card__icon--violet {
-  background: rgba(124, 58, 237, 0.14);
-  color: #7c3aed;
-}
-.module-card__icon--sky {
-  background: rgba(14, 165, 233, 0.14);
-  color: #0284c7;
-}
-.module-card__icon--rose {
-  background: rgba(244, 63, 94, 0.14);
-  color: #e11d48;
-}
-.module-card__icon--emerald {
-  background: rgba(16, 185, 129, 0.14);
-  color: #059669;
 }
 
 .module-card__body {

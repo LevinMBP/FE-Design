@@ -1,11 +1,23 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Button, Table, Tag } from 'antd'
+import { App, Button, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { Plus } from 'lucide-react'
-import { useGetEmployeesQuery } from '../contactsApi'
+import {
+  useDeleteEmployeeMutation,
+  useGetEmployeesQuery,
+  useRestoreEmployeeMutation,
+} from '../contactsApi'
 import { DEPARTMENTS, type Employee } from '../types'
+import type { ListScope } from '../../../shared/softDelete'
+import ScopeFilter from '../../../shared/components/ScopeFilter'
+import {
+  deletedRowClassName,
+  softDeleteColumns,
+} from '../../../shared/components/softDeleteColumns'
+import { useIsAdmin } from '../../admin/rbac/useIsAdmin'
 
-const columns: ColumnsType<Employee> = [
+const baseColumns: ColumnsType<Employee> = [
   {
     title: 'Name',
     dataIndex: 'name',
@@ -40,7 +52,47 @@ const columns: ColumnsType<Employee> = [
 ]
 
 function EmployeesPage() {
-  const { data: employees, isLoading } = useGetEmployeesQuery()
+  const { message } = App.useApp()
+  const isAdmin = useIsAdmin()
+  const [scope, setScope] = useState<ListScope>('active')
+  const { data: employees, isFetching } = useGetEmployeesQuery(scope)
+  const [deleteEmployee, { isLoading: deleting, originalArgs: deletingId }] =
+    useDeleteEmployeeMutation()
+  const [restoreEmployee, { isLoading: restoring, originalArgs: restoringId }] =
+    useRestoreEmployeeMutation()
+
+  const columns = useMemo<ColumnsType<Employee>>(
+    () => [
+      ...baseColumns,
+      ...softDeleteColumns<Employee>(scope !== 'active', {
+        entityLabel: 'employee',
+        describe: (r) => r.name,
+        canRestore: isAdmin,
+        pendingId: deleting ? deletingId : restoring ? restoringId : null,
+        onDelete: async (r) => {
+          const res = await deleteEmployee(r.id)
+          if ('error' in res) message.error(String(res.error))
+          else message.success(`${r.name} deleted`)
+        },
+        onRestore: async (r) => {
+          const res = await restoreEmployee(r.id)
+          if ('error' in res) message.error(String(res.error))
+          else message.success(`${r.name} restored`)
+        },
+      }),
+    ],
+    [
+      scope,
+      isAdmin,
+      deleting,
+      deletingId,
+      restoring,
+      restoringId,
+      deleteEmployee,
+      restoreEmployee,
+      message,
+    ],
+  )
 
   return (
     <div className="module-view">
@@ -56,11 +108,15 @@ function EmployeesPage() {
         </Link>
       </div>
 
+      <ScopeFilter value={scope} onChange={setScope} />
+
       <Table<Employee>
         rowKey="id"
         columns={columns}
         dataSource={employees}
-        loading={isLoading}
+        loading={isFetching}
+        rowClassName={deletedRowClassName}
+        locale={{ emptyText: scope === 'deleted' ? 'No deleted employees.' : 'No employees yet.' }}
         pagination={{ pageSize: 10, hideOnSinglePage: true, showSizeChanger: true }}
         scroll={{ x: 'max-content' }}
       />

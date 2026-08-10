@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Tooltip } from 'antd'
-import { LayoutGrid, Grip, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { LayoutGrid, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import BrandMark from '../shared/components/BrandMark'
+import ModuleSwitcher from './ModuleSwitcher'
 import { MODULES, type ModuleId } from '../features/modules/modules'
 import {
   ACCOUNTING_SECTIONS,
@@ -93,9 +94,7 @@ function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </Tooltip>
       </div>
 
-      {mod && !collapsed && (
-        <div className="sidebar__module-label">{mod.name}</div>
-      )}
+      <ModuleSwitcher collapsed={collapsed} current={mod} />
 
       <nav className="sidebar__nav">
         {mod && (
@@ -150,19 +149,10 @@ function Sidebar({ collapsed, onToggle }: SidebarProps) {
         })}
       </nav>
 
+      {/* The "All modules" promo card that used to live here is gone — the
+          switcher at the top does the same job in one click, and still links to
+          the launcher for anyone who wants the full grid. */}
       <div className="sidebar__spacer" />
-
-      <CollapsibleItem collapsed={collapsed} label="All modules">
-        <Link to="/" className="sidebar__card">
-          <span className="sidebar__card-icon">
-            <Grip size={18} />
-          </span>
-          <span className="sidebar__card-title">All modules</span>
-          <span className="sidebar__card-text">
-            Switch between Inventory, Sales, Purchases and more.
-          </span>
-        </Link>
-      </CollapsibleItem>
     </aside>
   )
 }
