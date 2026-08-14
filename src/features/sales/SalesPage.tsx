@@ -1,9 +1,14 @@
 import { Link } from 'react-router-dom'
-import { Button, Table } from 'antd'
+import { Button, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { Plus } from 'lucide-react'
 import dayjs from 'dayjs'
 import { useGetSalesQuery } from '../inventory/inventoryApi'
+import {
+  SETTLEMENT_TAG,
+  outstandingOf,
+  settlementStatus,
+} from '../../shared/settlement'
 import type { Sale, SaleLine } from '../inventory/types'
 
 const peso = (v: number) =>
@@ -33,6 +38,39 @@ const columns: ColumnsType<Sale> = [
     dataIndex: 'total',
     align: 'right',
     render: (v: number) => <span style={{ fontWeight: 600 }}>{peso(v)}</span>,
+  },
+  {
+    title: 'Collection',
+    key: 'collection',
+    render: (_, r) => {
+      const status = settlementStatus(r.total, r.amountPaid)
+      const tag = SETTLEMENT_TAG[status]
+      return (
+        <div>
+          <Tag color={tag.color}>{tag.label}</Tag>
+          {status !== 'paid' && (
+            <div className="text-tertiary" style={{ fontSize: 'var(--font-size-xs)' }}>
+              {peso(outstandingOf(r.total, r.amountPaid))} left
+            </div>
+          )}
+        </div>
+      )
+    },
+  },
+  {
+    title: '',
+    key: 'action',
+    align: 'right',
+    render: (_, r) =>
+      settlementStatus(r.total, r.amountPaid) === 'paid' ? (
+        <span className="text-tertiary">Settled</span>
+      ) : (
+        <Link to={`/sales/collections/new?sale=${r.id}`}>
+          <Button size="small" type="primary" ghost>
+            Collect
+          </Button>
+        </Link>
+      ),
   },
 ]
 

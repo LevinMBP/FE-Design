@@ -23,6 +23,22 @@ export function listSales(): Sale[] {
   return [...sales]
 }
 
+export function getSale(id: string): Sale | undefined {
+  return sales.find((s) => s.id === id)
+}
+
+/** Add a collected amount to a sales order's running received total. */
+export function applySalePayment(id: string, amount: number): Sale {
+  let updated: Sale | undefined
+  sales = sales.map((s) => {
+    if (s.id !== id) return s
+    updated = { ...s, amountPaid: round2(s.amountPaid + amount) }
+    return updated
+  })
+  if (!updated) throw new Error('That sales order no longer exists.')
+  return updated
+}
+
 export function createSale(input: NewSale): Sale {
   const usable = input.lines.filter((l) => l.itemId && l.quantity > 0)
   if (usable.length === 0) {
@@ -61,6 +77,7 @@ export function createSale(input: NewSale): Sale {
     customerName: customer?.company ?? '',
     lines,
     total,
+    amountPaid: 0,
   }
   sales = [record, ...sales]
 

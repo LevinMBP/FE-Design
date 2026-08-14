@@ -3,12 +3,9 @@ import { App, Button, Popconfirm, Space, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { Plus } from 'lucide-react'
 import dayjs from 'dayjs'
-import {
-  useGetInvoicesQuery,
-  useMarkInvoicePaidMutation,
-  useSendInvoiceMutation,
-} from '../salesDocsApi'
+import { useGetInvoicesQuery, useSendInvoiceMutation } from '../salesDocsApi'
 import { INVOICE_STATUS, peso } from '../salesDocMath'
+import { outstandingOf } from '../../../shared/settlement'
 import type { Invoice, InvoiceStatus, SalesDocLine } from '../types'
 
 const lineColumns: ColumnsType<SalesDocLine> = [
@@ -41,7 +38,6 @@ function InvoicesPage() {
   const { message } = App.useApp()
   const { data: invoices, isLoading } = useGetInvoicesQuery()
   const [send, { isLoading: sending }] = useSendInvoiceMutation()
-  const [markPaid, { isLoading: paying }] = useMarkInvoicePaidMutation()
 
   const doSend = async (inv: Invoice) => {
     try {
@@ -49,15 +45,6 @@ function InvoicesPage() {
       message.success(`Invoice ${inv.reference} sent — stock issued.`)
     } catch (err) {
       message.error(typeof err === 'string' ? err : 'Could not send invoice.')
-    }
-  }
-
-  const doPaid = async (inv: Invoice) => {
-    try {
-      await markPaid(inv.id).unwrap()
-      message.success(`Invoice ${inv.reference} marked paid.`)
-    } catch (err) {
-      message.error(typeof err === 'string' ? err : 'Could not update invoice.')
     }
   }
 
@@ -100,9 +87,19 @@ function InvoicesPage() {
     {
       title: 'Status',
       dataIndex: 'status',
-      render: (s: InvoiceStatus) => {
+      render: (s: InvoiceStatus, r) => {
         const meta = INVOICE_STATUS[s]
-        return <Tag color={meta.color}>{meta.label}</Tag>
+        const left = outstandingOf(r.total, r.amountPaid)
+        return (
+          <div>
+            <Tag color={meta.color}>{meta.label}</Tag>
+            {r.issued && r.amountPaid > 0 && s !== 'paid' && (
+              <div className="text-tertiary" style={{ fontSize: 'var(--font-size-xs)' }}>
+                {peso(left)} left
+              </div>
+            )}
+          </div>
+        )
       },
     },
     {
@@ -122,10 +119,15 @@ function InvoicesPage() {
               </Button>
             </Popconfirm>
           )}
+          {/* Settling opens the collection document with this invoice
+              pre-allocated — an invoice is never "marked paid" on its own,
+              because the money has to land in a cash or bank account. */}
           {inv.status === 'sent' && (
-            <Button size="small" loading={paying} onClick={() => doPaid(inv)}>
-              Mark paid
-            </Button>
+            <Link to={`/sales/collections/new?invoice=${inv.id}`}>
+              <Button size="small" type="primary" ghost>
+                Collect
+              </Button>
+            </Link>
           )}
           {inv.status === 'paid' && (
             <span style={{ color: 'var(--text-muted)' }}>Settled</span>
@@ -173,6 +175,14 @@ function InvoicesPage() {
                 {r.discountAmount > 0 && <span>Discount: −{peso(r.discountAmount)}</span>}
                 <span>Tax: <strong>{peso(r.taxAmount)}</strong></span>
                 <span>Final total: <strong>{peso(r.total)}</strong></span>
+                {r.issued && (
+                  <>
+                    <span>Collected: {peso(r.amountPaid)}</span>
+                    <span>
+                      Outstanding: <strong>{peso(outstandingOf(r.total, r.amountPaid))}</strong>
+                    </span>
+                  </>
+                )}
                 <span>Location: {r.location || '—'}</span>
                 <span>Delivery receipt: {r.deliveryReceipt || '—'}</span>
               </div>

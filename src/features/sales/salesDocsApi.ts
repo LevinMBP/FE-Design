@@ -7,10 +7,14 @@ import {
   getQuotation,
   listInvoices,
   listQuotations,
-  markInvoicePaid,
   sendInvoice,
   setQuotationStatus,
 } from './mockSalesDocs'
+import {
+  listCollections,
+  nextCollectionRef,
+  recordCollection,
+} from './mockCollections'
 import { recordAuditEvent } from '../admin/mockAuditLog'
 import {
   buildMonthlySalesByInvoice,
@@ -27,7 +31,9 @@ import type {
   SalesByMonthReport,
 } from './salesBreakdown'
 import type {
+  Collection,
   Invoice,
+  NewCollection,
   NewInvoice,
   NewQuotation,
   Quotation,
@@ -57,12 +63,29 @@ async function refreshStock(
   }
 }
 
+/**
+ * Refresh after a collection: it settles sales orders (owned by inventoryApi)
+ * as well as invoices, and posts the cash journal entry.
+ */
+async function refreshSettlement(
+  dispatch: (action: unknown) => unknown,
+  queryFulfilled: Promise<unknown>,
+) {
+  try {
+    await queryFulfilled
+    dispatch(inventoryApi.util.invalidateTags(['Sale']))
+    dispatch(accountingApi.util.invalidateTags(['JournalEntry', 'Account']))
+  } catch {
+    // mutation failed — nothing settled, so nothing to refresh
+  }
+}
+
 export const salesDocsApi = createApi({
   reducerPath: 'salesDocsApi',
   baseQuery: fakeBaseQuery<string>(),
   // 'Stock' is shared with inventoryApi conceptually, but each API tracks its
   // own tags; issuing an invoice refetches via component-level invalidation.
-  tagTypes: ['Quotation', 'Invoice'],
+  tagTypes: ['Quotation', 'Invoice', 'Collection'],
   endpoints: (builder) => ({
     getQuotations: builder.query<Quotation[], void>({
       queryFn: async () => {
@@ -195,18 +218,45 @@ export const salesDocsApi = createApi({
       providesTags: ['Invoice'],
     }),
 
-    markInvoicePaid: builder.mutation<Invoice, string>({
-      queryFn: async (id) => {
-        await delay(300)
+    getCollections: builder.query<Collection[], void>({
+      queryFn: async () => {
+        await delay(250)
+        return { data: listCollections() }
+      },
+      providesTags: ['Collection'],
+    }),
+
+    getNextCollectionRef: builder.query<string, void>({
+      queryFn: async () => {
+        await delay(50)
+        return { data: nextCollectionRef() }
+      },
+      providesTags: ['Collection'],
+    }),
+
+    addCollection: builder.mutation<Collection, NewCollection>({
+      queryFn: async (body) => {
+        await delay(400)
         try {
-          const invoice = markInvoicePaid(id)
-          recordAuditEvent({ module: 'sales', action: 'Marked invoice paid', target: invoice.reference })
-          return { data: invoice }
+          const collection = recordCollection(body)
+          recordAuditEvent({
+            module: 'sales',
+            action: 'Recorded collection',
+            target: collection.reference,
+            details: `${collection.customerName} — ${collection.allocations.length} document${
+              collection.allocations.length === 1 ? '' : 's'
+            }`,
+          })
+          return { data: collection }
         } catch (err) {
-          return fail(err, 'Could not update invoice.')
+          return fail(err, 'Could not record the collection.')
         }
       },
-      invalidatesTags: ['Invoice'],
+      // Settling receivables updates every allocated invoice and posts a journal.
+      invalidatesTags: ['Invoice', 'Collection'],
+      onQueryStarted: async (_arg, { dispatch, queryFulfilled }) => {
+        await refreshSettlement(dispatch, queryFulfilled)
+      },
     }),
   }),
 })
@@ -223,5 +273,7 @@ export const {
   useGetMonthlySalesByItemQuery,
   useAddInvoiceMutation,
   useSendInvoiceMutation,
-  useMarkInvoicePaidMutation,
+  useGetCollectionsQuery,
+  useGetNextCollectionRefQuery,
+  useAddCollectionMutation,
 } = salesDocsApi

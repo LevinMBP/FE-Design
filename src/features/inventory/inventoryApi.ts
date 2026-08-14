@@ -9,7 +9,7 @@ import {
 import { getItemLedger, listStockItems } from './mockStockMovements'
 import { listManufactureRuns, runManufacture, runManufactureBatch } from './mockManufacturing'
 import { createPurchase, listPurchases, nextPurchaseRef } from './mockPurchases'
-import { recordVendorPayment, listPayments } from './mockPayments'
+import { listPayments, nextPaymentRef, recordVendorPayment } from './mockPayments'
 import { createSale, listSales } from './mockSales'
 import { recordOpeningBalance } from './mockOpeningBalance'
 import { addLocation, listLocations } from './mockLocations'
@@ -263,7 +263,15 @@ export const inventoryApi = createApi({
       providesTags: ['Payment'],
     }),
 
-    payPurchase: builder.mutation<Payment, NewVendorPayment>({
+    getNextPaymentRef: builder.query<string, void>({
+      queryFn: async () => {
+        await delay(50)
+        return { data: nextPaymentRef() }
+      },
+      providesTags: ['Payment'],
+    }),
+
+    addVendorPayment: builder.mutation<Payment, NewVendorPayment>({
       queryFn: async (body) => {
         await delay(400)
         try {
@@ -272,14 +280,16 @@ export const inventoryApi = createApi({
             module: 'purchases',
             action: 'Recorded vendor payment',
             target: payment.reference,
-            details: `For ${payment.purchaseRef}`,
+            details: `${payment.vendorName} — ${payment.allocations.length} order${
+              payment.allocations.length === 1 ? '' : 's'
+            }`,
           })
           return { data: payment }
         } catch (err) {
           return { error: err instanceof Error ? err.message : 'Payment failed.' }
         }
       },
-      // Settling a payable updates the purchase and posts a journal entry.
+      // Settling payables updates every allocated purchase and posts a journal.
       invalidatesTags: ['Purchase', 'Payment'],
       onQueryStarted: async (_arg, { dispatch, queryFulfilled }) => {
         await refreshLedger(dispatch, queryFulfilled)
@@ -382,7 +392,8 @@ export const {
   useGetNextPurchaseRefQuery,
   useAddPurchaseMutation,
   useGetPaymentsQuery,
-  usePayPurchaseMutation,
+  useGetNextPaymentRefQuery,
+  useAddVendorPaymentMutation,
   useGetSalesQuery,
   useAddSaleMutation,
   useGetAuditsQuery,

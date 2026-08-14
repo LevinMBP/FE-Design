@@ -14,6 +14,61 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 export const peso = (v: number) =>
   new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(v)
 
+/* ---- Amount in words (printed on documents that require it) ---- */
+
+const ONES = [
+  'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+  'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
+  'seventeen', 'eighteen', 'nineteen',
+]
+const TENS = [
+  '', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety',
+]
+/** Scale words for each group of three digits, smallest first. */
+const SCALES = ['', 'thousand', 'million', 'billion', 'trillion']
+
+/** 0–999 spelled out ('one hundred twenty-three'). */
+function underThousand(n: number): string {
+  if (n < 20) return ONES[n]
+  if (n < 100) {
+    const rest = n % 10
+    return TENS[Math.floor(n / 10)] + (rest ? `-${ONES[rest]}` : '')
+  }
+  const rest = n % 100
+  return `${ONES[Math.floor(n / 100)]} hundred${rest ? ` ${underThousand(rest)}` : ''}`
+}
+
+/** A whole number spelled out in English. */
+export function numberToWords(value: number): string {
+  const n = Math.floor(Math.abs(value))
+  if (n === 0) return 'zero'
+  const groups: string[] = []
+  let rest = n
+  for (let scale = 0; rest > 0 && scale < SCALES.length; scale++) {
+    const group = rest % 1000
+    if (group) {
+      groups.unshift(`${underThousand(group)}${SCALES[scale] ? ` ${SCALES[scale]}` : ''}`)
+    }
+    rest = Math.floor(rest / 1000)
+  }
+  return groups.join(' ')
+}
+
+/**
+ * A money amount as the sentence documents print, e.g.
+ * `Eleven thousand eighty-eight pesos and 50/100 only`.
+ */
+export function amountInWords(value: number, major = 'pesos', minor = 'centavos'): string {
+  const abs = Math.abs(value)
+  const whole = Math.floor(abs)
+  const cents = Math.round((abs - whole) * 100)
+  const words = numberToWords(whole)
+  const sentence = `${value < 0 ? 'minus ' : ''}${words} ${major}${
+    cents ? ` and ${numberToWords(cents)} ${minor}` : ''
+  } only`
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1)
+}
+
 /** A line's tax treatment for the totals engine. */
 export interface TotalsLine {
   quantity: number

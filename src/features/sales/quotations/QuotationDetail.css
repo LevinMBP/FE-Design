@@ -1,25 +1,88 @@
-/* Quotation rendered as an A4 page — a WYSIWYG stand-in for the QuestPDF the
-   backend generates. White paper with dark ink in both themes so what you see
-   on screen is what prints/exports. */
+/* Quotation rendered as a page of paper — a WYSIWYG stand-in for the QuestPDF
+   the backend generates. White paper with dark ink in both themes so what you
+   see on screen is what prints/exports.
+
+   Nearly everything here is driven by custom properties and data-attributes
+   the document component sets from the active QuotationTemplate — see
+   `mockQuotationTemplate.ts`. Values below are only fallbacks. */
 
 .pdf-page {
+  --qd-accent: #4f46e5;
+  --qd-text: #1f2937;
+  --qd-muted: #6b7280;
+  --qd-page-w: 794px; /* A4 width at 96dpi (210mm) */
+  --qd-page-h: 1123px; /* A4 height at 96dpi (297mm) */
+  --qd-pad-t: 48px;
+  --qd-pad-r: 46px;
+  --qd-pad-b: 30px;
+  --qd-pad-l: 46px;
+  --qd-fs: 12.5px;
+  --qd-totals-w: 280px;
+  /* Vertical rhythm + table padding, scaled by density below. */
+  --qd-gap: 22px;
+  --qd-cell-y: 8px;
+  --qd-cell-x: 10px;
+  --qd-line: 1.5;
+
   width: 100%;
-  max-width: 794px; /* A4 width at 96dpi (210mm) */
+  max-width: var(--qd-page-w);
   margin: 0 auto;
   background: #ffffff;
-  color: #1f2937;
+  color: var(--qd-text);
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(17, 24, 39, 0.08), 0 12px 34px rgba(17, 24, 39, 0.12);
   overflow: hidden;
+  font-size: var(--qd-fs);
 }
 
 .pdf-page__inner {
-  min-height: 1123px; /* A4 height at 96dpi (297mm) — one full page */
-  padding: 48px 46px 30px;
+  position: relative;
+  min-height: var(--qd-page-h);
+  padding: var(--qd-pad-t) var(--qd-pad-r) var(--qd-pad-b) var(--qd-pad-l);
   display: flex;
   flex-direction: column;
-  font-size: 12.5px;
-  line-height: 1.5;
+  line-height: var(--qd-line);
+}
+
+/* An inked border printed inside the page margins. */
+.pdf-page[data-page-border='on'] .pdf-page__inner::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--qd-pad-t) / 2) calc(var(--qd-pad-r) / 2) calc(var(--qd-pad-b) / 2)
+    calc(var(--qd-pad-l) / 2);
+  border: 1px solid var(--qd-accent);
+  pointer-events: none;
+}
+
+/* Diagonal stamp behind the content (DRAFT, SAMPLE, the status…). */
+.qd-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  font-size: 120px;
+  font-weight: 800;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  color: var(--qd-accent);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.pdf-page__inner > *:not(.qd-watermark) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Shared small-caps label used by every block heading. */
+.qd-label {
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--qd-muted);
+}
+.pdf-page[data-upper-labels='on'] .qd-label {
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
 }
 
 /* ---- Letterhead ---- */
@@ -29,42 +92,41 @@
   align-items: flex-start;
   gap: 24px;
 }
-/* Logo/brand block moves to the right, title to the left. */
-.qd-head--logo-right {
-  flex-direction: row-reverse;
-}
-.qd-head--logo-right .qd-title {
-  text-align: left;
-}
 .qd-brand {
   display: flex;
   gap: 14px;
   align-items: center;
 }
 .qd-brand__logo {
-  height: 52px;
-  max-width: 220px;
+  height: 72px;
+  max-width: 280px;
   object-fit: contain;
 }
 .qd-brand__mark {
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 10px;
-  background: var(--qd-accent, #4f46e5);
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  background: var(--qd-accent);
   color: #fff;
   font-weight: 700;
-  font-size: 18px;
+  font-size: 24px;
+  flex: none;
 }
 .qd-brand__name {
   font-size: 16px;
   font-weight: 700;
-  color: #111827;
+  color: var(--qd-text);
 }
-.qd-brand__meta {
+.qd-brand__meta,
+.qd-brand__note {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--qd-muted);
+}
+.qd-brand__note {
+  margin-top: 3px;
+  font-weight: 600;
 }
 
 .qd-title {
@@ -75,13 +137,17 @@
   font-size: 20px;
   font-weight: 800;
   letter-spacing: 3px;
-  color: var(--qd-accent, #4f46e5);
+  color: var(--qd-accent);
+}
+.qd-title__sub {
+  font-size: 11px;
+  color: var(--qd-muted);
 }
 .qd-title__ref {
   margin-top: 2px;
   font-size: 13px;
   font-weight: 600;
-  color: #111827;
+  color: var(--qd-text);
 }
 .qd-badge {
   display: inline-block;
@@ -104,33 +170,114 @@
 
 .qd-rule {
   height: 2px;
-  background: var(--qd-accent, #4f46e5);
+  background: var(--qd-accent);
   margin: 16px 0 20px;
 }
 
-/* ---- Parties + dates ---- */
+/* Letterhead variants ------------------------------------------------- */
+
+/* Logo on the right, title on the left. */
+.pdf-page[data-header='classic'][data-logo-pos='right'] .qd-head {
+  flex-direction: row-reverse;
+}
+.pdf-page[data-header='classic'][data-logo-pos='right'] .qd-title {
+  text-align: left;
+}
+/* Everything stacked and centred. */
+.pdf-page[data-header='centered'] .qd-head,
+.pdf-page[data-header='classic'][data-logo-pos='center'] .qd-head {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+.pdf-page[data-header='centered'] .qd-brand,
+.pdf-page[data-header='classic'][data-logo-pos='center'] .qd-brand {
+  flex-direction: column;
+  text-align: center;
+  gap: 8px;
+}
+.pdf-page[data-header='centered'] .qd-title,
+.pdf-page[data-header='classic'][data-logo-pos='center'] .qd-title {
+  text-align: center;
+}
+
+/* Full-bleed accent band across the top of the page. */
+.pdf-page[data-header='band'] .qd-head {
+  margin: calc(-1 * var(--qd-pad-t)) calc(-1 * var(--qd-pad-r)) 0 calc(-1 * var(--qd-pad-l));
+  padding: 22px var(--qd-pad-r) 22px var(--qd-pad-l);
+  background: var(--qd-accent);
+  color: #fff;
+  align-items: center;
+}
+.pdf-page[data-header='band'][data-logo-pos='right'] .qd-head {
+  flex-direction: row-reverse;
+}
+.pdf-page[data-header='band'][data-logo-pos='right'] .qd-title {
+  text-align: left;
+}
+.pdf-page[data-header='band'] .qd-brand__name,
+.pdf-page[data-header='band'] .qd-brand__meta,
+.pdf-page[data-header='band'] .qd-brand__note,
+.pdf-page[data-header='band'] .qd-title__word,
+.pdf-page[data-header='band'] .qd-title__sub,
+.pdf-page[data-header='band'] .qd-title__ref {
+  color: #fff;
+}
+.pdf-page[data-header='band'] .qd-brand__mark {
+  background: rgba(255, 255, 255, 0.2);
+}
+.pdf-page[data-header='band'] .qd-rule {
+  margin-top: 20px;
+}
+
+/* Understated: small company line, quiet title, no heavy accent. */
+.pdf-page[data-header='minimal'] .qd-brand__logo {
+  height: 46px;
+}
+.pdf-page[data-header='minimal'] .qd-brand__name {
+  font-size: 13px;
+}
+.pdf-page[data-header='minimal'] .qd-title__word {
+  font-size: 16px;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  color: var(--qd-text);
+}
+.pdf-page[data-header='minimal'] .qd-rule {
+  height: 1px;
+  background: #e5e7eb;
+}
+
+/* ---- Body sections (order comes from the template) ---- */
+.qd-body {
+  display: flex;
+  flex-direction: column;
+}
+.qd-section + .qd-section {
+  margin-top: var(--qd-gap);
+}
+/* Totals sit directly under the table they summarise. */
+.qd-section--items + .qd-section--totals {
+  margin-top: 14px;
+}
+
+/* ---- Parties + meta rows ---- */
 .qd-parties {
   display: flex;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 22px;
-  font-size: 12px;
-  color: #374151;
+  color: var(--qd-text);
 }
-.qd-parties__label {
-  margin-bottom: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #6b7280;
+.qd-parties__to {
+  min-width: 0;
 }
 .qd-parties__name {
   font-weight: 700;
-  color: #111827;
 }
 .qd-parties__dates {
   min-width: 220px;
+  flex: none;
 }
 .qd-kv {
   display: flex;
@@ -139,7 +286,7 @@
   padding: 2px 0;
 }
 .qd-kv span:first-child {
-  color: #6b7280;
+  color: var(--qd-muted);
 }
 
 /* ---- Line items table ---- */
@@ -147,10 +294,8 @@
   width: 100%;
   border-collapse: collapse;
   /* Fixed layout keeps columns within the page; long text wraps instead of
-     stretching the table past the A4 width (which the page would then clip). */
+     stretching the table past the paper width (which the page would clip). */
   table-layout: fixed;
-  font-size: 12px;
-  margin-bottom: 16px;
 }
 /* Column widths come from a <colgroup> (weights normalised per visible column)
    so hiding a column keeps the table within the page. */
@@ -159,83 +304,133 @@
   text-align: left;
   font-size: 10px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: #374151;
-  padding: 8px 10px;
+  padding: var(--qd-cell-y) var(--qd-cell-x);
   border-bottom: 1px solid #d1d5db;
 }
+.pdf-page[data-upper-head='on'] .qd-table thead th {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 .qd-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid #eceff3;
+  padding: var(--qd-cell-y) var(--qd-cell-x);
   vertical-align: top;
   /* Wrap normal text and break long unbroken strings so nothing overflows. */
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 .qd-table .num {
-  text-align: right;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .qd-table__item {
   font-weight: 600;
-  color: #111827;
+}
+/* Description printed under the item name instead of in its own column. */
+.qd-table__sub {
+  margin-top: 2px;
+  font-weight: 400;
+  font-size: 0.92em;
+  color: var(--qd-muted);
 }
 .qd-table__empty {
   padding: 18px 10px;
   color: #9ca3af;
 }
+/* Blank rows that pad a short quote out to the template's minimum. */
+.qd-table__pad td {
+  color: transparent;
+}
+
+/* Table borders */
+.pdf-page[data-border='horizontal'] .qd-table td {
+  border-bottom: 1px solid #eceff3;
+}
+.pdf-page[data-border='grid'] .qd-table th,
+.pdf-page[data-border='grid'] .qd-table td {
+  border: 1px solid #d8dce3;
+}
+.pdf-page[data-border='none'] .qd-table thead th {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Accent-filled table header */
+.pdf-page[data-accent-header='on'] .qd-table thead th {
+  background: var(--qd-accent);
+  color: #ffffff;
+  border-bottom-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Zebra striping */
+.pdf-page[data-zebra='on'] .qd-table tbody tr:nth-child(even) td {
+  background: #f9fafb;
+}
 
 /* ---- Totals ---- */
+.qd-totals-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+.qd-words {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.95em;
+  color: var(--qd-text);
+}
 .qd-totals {
-  max-width: 280px;
+  width: var(--qd-totals-w);
+  max-width: 100%;
   margin-left: auto;
-  font-size: 12.5px;
+  flex: none;
 }
 .qd-totals__row {
   display: flex;
   justify-content: space-between;
   gap: 24px;
   padding: 3px 0;
-  color: #4b5563;
+  color: var(--qd-muted);
   font-variant-numeric: tabular-nums;
 }
 .qd-totals__row--grand {
   margin-top: 6px;
   padding-top: 8px;
-  border-top: 2px solid #111827;
-  color: #111827;
+  border-top: 2px solid var(--qd-text);
+  color: var(--qd-text);
   font-weight: 700;
-  font-size: 14px;
+  font-size: 1.12em;
+}
+.pdf-page[data-accent-total='on'] .qd-totals__row--grand {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-top: none;
+  background: var(--qd-accent);
+  color: #fff;
+  border-radius: 4px;
 }
 
-/* ---- Notes ---- */
-.qd-notes {
-  margin-top: 22px;
-  font-size: 12px;
-}
-.qd-notes__label {
-  margin-bottom: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #6b7280;
-}
-.qd-notes p {
+/* ---- Notes / terms / client-defined blocks ---- */
+.qd-block p {
   margin: 0;
-  color: #4b5563;
+  color: var(--qd-text);
   white-space: pre-wrap;
 }
 
 /* ---- Signatures ---- */
 .qd-sigs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 48px;
-  margin-top: 36px;
-  max-width: 560px;
+  margin-top: 14px;
+}
+.qd-sigs[data-cols='1'] { grid-template-columns: minmax(0, 280px); }
+.qd-sigs[data-cols='2'] { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 560px; }
+.qd-sigs[data-cols='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.qd-sigs__note {
+  margin-top: 12px;
+  font-size: 0.9em;
+  color: var(--qd-muted);
+  white-space: pre-wrap;
 }
 .qd-sig {
   text-align: center;
@@ -251,9 +446,9 @@
   margin-bottom: -6px;
 }
 .qd-sig__name {
-  border-top: 1px solid #111827;
+  border-top: 1px solid var(--qd-text);
   padding-top: 6px;
-  font-size: 13px;
+  font-size: 1.04em;
   font-weight: 600;
   min-height: 26px;
 }
@@ -262,20 +457,22 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.7px;
-  color: #6b7280;
+  color: var(--qd-muted);
 }
 
 /* ---- Footer band, pinned to the bottom of the page ---- */
 .qd-foot {
   margin-top: auto;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   gap: 24px;
   font-size: 10.5px;
   color: #9ca3af;
+}
+.qd-foot[data-divider='on'] {
+  border-top: 1px solid #e5e7eb;
 }
 /* The footer text is client-supplied and can be long — let it wrap (and honour
    line breaks) instead of running off the page. The right meta stays on one
@@ -292,49 +489,38 @@
   white-space: nowrap;
 }
 
-/* ---- Template options driven by data-attributes on .pdf-page ---- */
-
-/* Paper size */
-.pdf-page[data-paper='A4'] { max-width: 794px; }
-.pdf-page[data-paper='A4'] .pdf-page__inner { min-height: 1123px; }
-.pdf-page[data-paper='Letter'] { max-width: 816px; } /* 8.5in @96dpi */
-.pdf-page[data-paper='Letter'] .pdf-page__inner { min-height: 1056px; } /* 11in */
-
-/* Typography */
+/* ---- Typography + density presets ---- */
 .pdf-page[data-font='sans'] {
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 .pdf-page[data-font='serif'] {
   font-family: Georgia, 'Times New Roman', 'Noto Serif', serif;
 }
-
-/* Density → page margins + table cell padding + base size */
-.pdf-page[data-density='compact'] .pdf-page__inner { padding: 32px 34px 24px; font-size: 11.5px; }
-.pdf-page[data-density='compact'] .qd-table { font-size: 11px; }
-.pdf-page[data-density='compact'] .qd-table thead th,
-.pdf-page[data-density='compact'] .qd-table td { padding: 5px 8px; }
-.pdf-page[data-density='relaxed'] .pdf-page__inner { padding: 60px 56px 34px; font-size: 13px; }
-.pdf-page[data-density='relaxed'] .qd-table { font-size: 12.5px; }
-.pdf-page[data-density='relaxed'] .qd-table thead th,
-.pdf-page[data-density='relaxed'] .qd-table td { padding: 11px 12px; }
-
-/* Logo size */
-.pdf-page[data-logo='small'] .qd-brand__logo { height: 40px; }
-.pdf-page[data-logo='small'] .qd-brand__mark { width: 42px; height: 42px; font-size: 15px; }
-.pdf-page[data-logo='large'] .qd-brand__logo { height: 68px; }
-.pdf-page[data-logo='large'] .qd-brand__mark { width: 66px; height: 66px; font-size: 22px; }
-
-/* Accent-filled table header */
-.pdf-page[data-accent-header='on'] .qd-table thead th {
-  background: var(--qd-accent, #4f46e5);
-  color: #ffffff;
-  border-bottom-color: rgba(0, 0, 0, 0.12);
+.pdf-page[data-font='mono'] {
+  font-family: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
+}
+.pdf-page[data-font='condensed'] {
+  font-family: 'Roboto Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* Zebra striping */
-.pdf-page[data-zebra='on'] .qd-table tbody tr:nth-child(even) td {
-  background: #f9fafb;
+.pdf-page[data-density='compact'] {
+  --qd-gap: 14px;
+  --qd-cell-y: 5px;
+  --qd-cell-x: 8px;
+  --qd-line: 1.38;
 }
+.pdf-page[data-density='relaxed'] {
+  --qd-gap: 30px;
+  --qd-cell-y: 11px;
+  --qd-cell-x: 12px;
+  --qd-line: 1.65;
+}
+
+/* Logo size — medium is the base rule above (72px). */
+.pdf-page[data-logo='small'] .qd-brand__logo { height: 54px; max-width: 230px; }
+.pdf-page[data-logo='small'] .qd-brand__mark { width: 54px; height: 54px; font-size: 19px; }
+.pdf-page[data-logo='large'] .qd-brand__logo { height: 96px; max-width: 340px; }
+.pdf-page[data-logo='large'] .qd-brand__mark { width: 96px; height: 96px; font-size: 30px; }
 
 /* ---- Form + live preview split layout ---- */
 .quote-editor {
@@ -395,25 +581,25 @@
     max-width: none;
     box-shadow: none;
     border-radius: 0;
+    /* Cancel any preview zoom so the paper prints at full size. */
+    transform: none !important;
   }
   .pdf-page__inner {
     min-height: auto;
-    padding: 0;
   }
 }
 
 @media (max-width: 640px) {
-  .pdf-page__inner {
-    padding: 26px 22px;
-  }
   .qd-head,
   .qd-parties,
-  .qd-sigs {
-    grid-template-columns: 1fr;
+  .qd-totals-wrap {
     flex-direction: column;
     gap: 18px;
   }
   .qd-title {
     text-align: left;
+  }
+  .qd-sigs[data-cols='3'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

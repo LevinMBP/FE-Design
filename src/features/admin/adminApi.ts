@@ -12,9 +12,16 @@ import { loadSession } from '../auth/session'
 import type { User, UserStatus } from '../auth/types'
 import { getCompany, updateCompany, type CompanyProfile } from './mockCompany'
 import {
+  createQuotationTemplate,
+  deleteQuotationTemplate,
   getQuotationTemplate,
+  getTemplateStore,
+  importQuotationTemplate,
+  saveQuotationTemplate,
+  setActiveQuotationTemplate,
   updateQuotationTemplate,
   type QuotationTemplate,
+  type TemplateStore,
 } from './mockQuotationTemplate'
 import { listAuditEvents, recordAuditEvent, type AuditEvent } from './mockAuditLog'
 import { isAdminUser, loadRbac } from './rbac/mockRbac'
@@ -147,6 +154,71 @@ export const adminApi = createApi({
       invalidatesTags: ['QuotationTemplate', 'AuditEvent'],
     }),
 
+    /* ---- Template library (Admin › Quotation Layout) ---- */
+
+    getQuotationTemplates: builder.query<TemplateStore, void>({
+      queryFn: async () => {
+        await delay(150)
+        return { data: getTemplateStore() }
+      },
+      providesTags: ['QuotationTemplate'],
+    }),
+
+    saveQuotationTemplate: builder.mutation<QuotationTemplate, QuotationTemplate>({
+      queryFn: async (template) => {
+        await delay(400)
+        return { data: saveQuotationTemplate(template) }
+      },
+      invalidatesTags: ['QuotationTemplate', 'AuditEvent'],
+    }),
+
+    createQuotationTemplate: builder.mutation<
+      QuotationTemplate,
+      { name: string; sourceId?: string }
+    >({
+      queryFn: async ({ name, sourceId }) => {
+        await delay(300)
+        return { data: createQuotationTemplate(name, sourceId) }
+      },
+      invalidatesTags: ['QuotationTemplate', 'AuditEvent'],
+    }),
+
+    deleteQuotationTemplate: builder.mutation<TemplateStore, string>({
+      queryFn: async (id) => {
+        await delay(300)
+        try {
+          return { data: deleteQuotationTemplate(id) }
+        } catch (err) {
+          return { error: err instanceof Error ? err.message : 'Could not delete the layout.' }
+        }
+      },
+      invalidatesTags: ['QuotationTemplate', 'AuditEvent'],
+    }),
+
+    setActiveQuotationTemplate: builder.mutation<TemplateStore, string>({
+      queryFn: async (id) => {
+        await delay(300)
+        try {
+          return { data: setActiveQuotationTemplate(id) }
+        } catch (err) {
+          return { error: err instanceof Error ? err.message : 'Could not switch layouts.' }
+        }
+      },
+      invalidatesTags: ['QuotationTemplate', 'AuditEvent'],
+    }),
+
+    importQuotationTemplate: builder.mutation<QuotationTemplate, string>({
+      queryFn: async (json) => {
+        await delay(300)
+        try {
+          return { data: importQuotationTemplate(json) }
+        } catch {
+          return { error: "That file isn't a valid layout export." }
+        }
+      },
+      invalidatesTags: ['QuotationTemplate', 'AuditEvent'],
+    }),
+
     getAuditEvents: builder.query<AuditEvent[], void>({
       queryFn: async () => {
         await delay(200)
@@ -170,5 +242,11 @@ export const {
   useUpdateCompanyMutation,
   useGetQuotationTemplateQuery,
   useUpdateQuotationTemplateMutation,
+  useGetQuotationTemplatesQuery,
+  useSaveQuotationTemplateMutation,
+  useCreateQuotationTemplateMutation,
+  useDeleteQuotationTemplateMutation,
+  useSetActiveQuotationTemplateMutation,
+  useImportQuotationTemplateMutation,
   useGetAuditEventsQuery,
 } = adminApi

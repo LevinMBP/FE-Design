@@ -1,0 +1,44 @@
+/* Shared chrome for the two settlement documents — vendor payments and
+   customer collections. Both are "party + allocation table + total". */
+
+.settle-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.settle-toolbar__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settle-toolbar__label {
+  font-size: var(--font-size-xs, 12px);
+  color: var(--text-muted);
+}
+
+.settle-toolbar__hint {
+  flex: 1 1 220px;
+  min-width: 180px;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs, 12px);
+  text-align: right;
+}
+
+.settle-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* Allocation summary in a list row (payments/collections lists). */
+.settle-alloc-note {
+  margin: 10px 2px 0;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}

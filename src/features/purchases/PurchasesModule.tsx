@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react'
-import { ShoppingCart, Coins, PackagePlus } from 'lucide-react'
+import { ShoppingCart, Coins, PackagePlus, Banknote } from 'lucide-react'
 import { useAppSelector } from '../../app/hooks'
 import { selectUser } from '../auth/authSlice'
 import SectionCard from '../modules/SectionCard'
 import { PURCHASES_SECTIONS } from '../modules/plannedSections'
 import { useGetPurchasesQuery } from '../inventory/inventoryApi'
+import { purchaseOutstanding } from '../inventory/types'
 import '../modules/ModulePage.css'
 
 const peso = (v: number) =>
@@ -20,6 +21,8 @@ function PurchasesModule() {
     (s, p) => s + p.lines.reduce((n, l) => n + l.quantity, 0),
     0,
   )
+  // What vendors are still owed across every open purchase order.
+  const payable = purchases?.reduce((s, p) => s + purchaseOutstanding(p), 0)
 
   return (
     <div className="module-view">
@@ -46,6 +49,12 @@ function PurchasesModule() {
           label="Items Received"
           value={itemsReceived != null ? itemsReceived.toLocaleString() : '—'}
           tone="green"
+        />
+        <StatCard
+          icon={<Banknote size={20} />}
+          label="Outstanding Payables"
+          value={payable != null ? peso(payable) : '—'}
+          tone="neutral"
         />
       </div>
 

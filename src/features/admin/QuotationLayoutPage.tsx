@@ -1,119 +1,192 @@
-import { useEffect, useState } from 'react'
-import { App, Button, Card, ColorPicker, Input, Segmented, Switch } from 'antd'
-import dayjs from 'dayjs'
+import { useEffect, useRef, useState } from 'react'
 import {
-  useGetQuotationTemplateQuery,
-  useUpdateQuotationTemplateMutation,
+  App,
+  Button,
+  Card,
+  Dropdown,
+  Input,
+  Modal,
+  Segmented,
+  Select,
+  Skeleton,
+  Tag,
+  Tooltip,
+} from 'antd'
+import {
+  Check,
+  Copy,
+  Download,
+  FilePlus2,
+  MoreHorizontal,
+  Pencil,
+  Printer,
+  RotateCcw,
+  Trash2,
+  Upload,
+} from 'lucide-react'
+import {
+  useCreateQuotationTemplateMutation,
+  useDeleteQuotationTemplateMutation,
+  useGetQuotationTemplatesQuery,
+  useImportQuotationTemplateMutation,
+  useSaveQuotationTemplateMutation,
+  useSetActiveQuotationTemplateMutation,
 } from './adminApi'
 import {
-  DEFAULT_QUOTATION_TEMPLATE,
-  type Density,
-  type FontFamily,
-  type LogoSize,
-  type PaperSize,
+  applyPreset,
+  resetTemplate,
+  TEMPLATE_PRESETS,
   type QuotationTemplate,
 } from './mockQuotationTemplate'
-import QuotationDocument, {
-  type QuotationDoc,
-} from '../sales/quotations/QuotationDocument'
+import QuotationLayoutControls from './QuotationLayoutControls'
+import { SAMPLE_LONG, SAMPLE_SHORT } from './quotationLayoutSample'
+import QuotationDocument from '../sales/quotations/QuotationDocument'
 import './admin.css'
 
-const { TextArea } = Input
+type NameModal = { mode: 'new' | 'duplicate' | 'rename'; value: string }
 
-/** Sample quote used only to render the live preview in the editor. */
-const SAMPLE_QUOTE: QuotationDoc = {
-  reference: 'QUO-0142',
-  status: 'sent',
-  customerName: 'Acme Trading Corp.',
-  contactPerson: 'Jorge Santos',
-  email: 'purchasing@acme.example',
-  address: '88 Industria St, Pasig City',
-  date: dayjs().format('YYYY-MM-DD'),
-  effectiveDate: dayjs().format('YYYY-MM-DD'),
-  expiryDate: dayjs().add(3, 'month').format('YYYY-MM-DD'),
-  lines: [
-    {
-      itemKind: 'material',
-      itemId: 's1',
-      itemName: 'Steel Bolts (M8)',
-      packaging: 'Box of 100',
-      description: 'Zinc-plated, DIN 933 hex head',
-      quantity: 20,
-      unit: 'box',
-      unitPrice: 45,
-    },
-    {
-      itemKind: 'material',
-      itemId: 's2',
-      itemName: 'Aluminum Sheet 2mm',
-      packaging: 'Sheet',
-      description:
-        'Mill-finish 1220×2440mm aluminium sheet, alloy 5052-H32, protective film both sides, cut to size on request — a deliberately long line to show how descriptions wrap within the page.',
-      quantity: 5,
-      unit: 'sheet',
-      unitPrice: 1200,
-    },
-    {
-      itemKind: 'product',
-      itemId: 's3',
-      itemName: 'On-site Assembly',
-      packaging: '',
-      description: 'Assembly and calibration at the customer site',
-      quantity: 1,
-      unit: 'job',
-      unitPrice: 3000,
-    },
-  ],
-  subtotal: 9900,
-  discountAmount: 0,
-  taxBreakdown: [{ label: 'VAT 12%', amount: 1188 }],
-  total: 11088,
-  notes: 'Prices valid for 30 days. 50% down payment required to begin.',
-  preparedBy: { name: 'Ava Reyes', signature: '' },
-  approvedBy: { name: 'Marcus Lee', signature: '' },
+const MODAL_TITLE: Record<NameModal['mode'], string> = {
+  new: 'New layout',
+  duplicate: 'Duplicate layout',
+  rename: 'Rename layout',
 }
 
-/** One labelled control row in the editor. */
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string
-  hint?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="qtpl-field">
-      <div className="qtpl-field__text">
-        <div className="qtpl-field__label">{label}</div>
-        {hint && <div className="qtpl-field__hint">{hint}</div>}
-      </div>
-      <div className="qtpl-field__control">{children}</div>
-    </div>
-  )
+/** Download the template as JSON so it can be moved between environments. */
+function exportTemplate(template: QuotationTemplate) {
+  const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${template.name.replace(/[^\w-]+/g, '-').toLowerCase()}-quotation-layout.json`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
+/**
+ * Admin › Quotation Layout. Keeps a library of named layouts, one of which is
+ * active for the whole org, and edits the selected one against a live preview
+ * of the real document component — what you see here is what prints.
+ */
 function QuotationLayoutPage() {
-  const { data: saved, isLoading } = useGetQuotationTemplateQuery()
-  const [updateTemplate, { isLoading: isSaving }] = useUpdateQuotationTemplateMutation()
-  const { message } = App.useApp()
-  const [draft, setDraft] = useState<QuotationTemplate>(saved ?? DEFAULT_QUOTATION_TEMPLATE)
+  const { data: store, isLoading } = useGetQuotationTemplatesQuery()
+  const [saveTemplate, { isLoading: isSaving }] = useSaveQuotationTemplateMutation()
+  const [createTemplate] = useCreateQuotationTemplateMutation()
+  const [deleteTemplate] = useDeleteQuotationTemplateMutation()
+  const [setActive, { isLoading: isActivating }] = useSetActiveQuotationTemplateMutation()
+  const [importTemplate] = useImportQuotationTemplateMutation()
+  const { message, modal } = App.useApp()
 
+  const [selectedId, setSelectedId] = useState<string>()
+  const [draft, setDraft] = useState<QuotationTemplate>()
+  const [nameModal, setNameModal] = useState<NameModal | null>(null)
+  const [zoom, setZoom] = useState(0.75)
+  const [sample, setSample] = useState<'short' | 'long'>('short')
+  const fileInput = useRef<HTMLInputElement>(null)
+
+  const saved = store?.templates.find((t) => t.id === selectedId)
+
+  // Load the selected layout (or the active one on first render) into the draft.
   useEffect(() => {
-    if (saved) setDraft(saved)
-  }, [saved])
+    if (!store) return
+    const next =
+      store.templates.find((t) => t.id === selectedId) ??
+      store.templates.find((t) => t.id === store.activeId) ??
+      store.templates[0]
+    if (!next) return
+    setSelectedId(next.id)
+    setDraft(next)
+  }, [store, selectedId])
 
-  const set = (patch: Partial<QuotationTemplate>) => setDraft((d) => ({ ...d, ...patch }))
-  const dirty = JSON.stringify(draft) !== JSON.stringify(saved)
+  const dirty = !!draft && !!saved && JSON.stringify(draft) !== JSON.stringify(saved)
+  const isActive = !!draft && store?.activeId === draft.id
+
+  const set = (patch: Partial<QuotationTemplate>) =>
+    setDraft((d) => (d ? { ...d, ...patch } : d))
+
+  /** Switching layouts throws away unsaved edits — ask first. */
+  const selectTemplate = (id: string) => {
+    if (id === selectedId) return
+    if (dirty) {
+      modal.confirm({
+        title: 'Discard unsaved changes?',
+        content: 'Your edits to this layout haven\'t been saved yet.',
+        okText: 'Discard',
+        okButtonProps: { danger: true },
+        onOk: () => setSelectedId(id),
+      })
+      return
+    }
+    setSelectedId(id)
+  }
 
   const onSave = async () => {
+    if (!draft) return
     try {
-      await updateTemplate(draft).unwrap()
+      await saveTemplate(draft).unwrap()
       message.success('Quotation layout saved.')
     } catch {
       message.error('Could not save the layout.')
     }
+  }
+
+  const onNameModalOk = async () => {
+    if (!nameModal || !draft) return
+    const name = nameModal.value.trim()
+    if (!name) return
+    try {
+      if (nameModal.mode === 'rename') {
+        set({ name })
+      } else {
+        const created = await createTemplate({
+          name,
+          sourceId: nameModal.mode === 'duplicate' ? draft.id : undefined,
+        }).unwrap()
+        setSelectedId(created.id)
+        message.success(`Created “${created.name}”.`)
+      }
+      setNameModal(null)
+    } catch {
+      message.error('Could not create the layout.')
+    }
+  }
+
+  const onDelete = async () => {
+    if (!draft) return
+    try {
+      await deleteTemplate(draft.id).unwrap()
+      setSelectedId(undefined)
+      message.success('Layout deleted.')
+    } catch (err) {
+      message.error(typeof err === 'string' ? err : 'Could not delete the layout.')
+    }
+  }
+
+  const onActivate = async () => {
+    if (!draft) return
+    try {
+      await setActive(draft.id).unwrap()
+      message.success('Quotations now print with this layout.')
+    } catch {
+      message.error('Could not switch layouts.')
+    }
+  }
+
+  const onImport = async (file: File) => {
+    try {
+      const imported = await importTemplate(await file.text()).unwrap()
+      setSelectedId(imported.id)
+      message.success(`Imported “${imported.name}”.`)
+    } catch {
+      message.error("That file isn't a valid layout export.")
+    }
+  }
+
+  if (isLoading || !draft || !store) {
+    return (
+      <div className="module-view">
+        <Skeleton active paragraph={{ rows: 10 }} />
+      </div>
+    )
   }
 
   return (
@@ -121,148 +194,182 @@ function QuotationLayoutPage() {
       <div className="page-head">
         <div>
           <h1>Quotation layout</h1>
-          <p>Customize how your quotation document looks. Changes preview live and apply to every quotation.</p>
+          <p>
+            Design the quotation document — page, letterhead, columns, blocks and wording.
+            Changes preview live; the active layout is what customers receive.
+          </p>
         </div>
-        <Button type="primary" onClick={onSave} loading={isSaving} disabled={!dirty || isLoading}>
-          Save changes
-        </Button>
+        <div className="page-head__actions">
+          {dirty && (
+            <Button onClick={() => saved && setDraft(saved)} disabled={isSaving}>
+              Discard changes
+            </Button>
+          )}
+          <Button type="primary" onClick={onSave} loading={isSaving} disabled={!dirty}>
+            Save changes
+          </Button>
+        </div>
+      </div>
+
+      {/* Layout library */}
+      <div className="qtpl-toolbar">
+        <div className="qtpl-toolbar__group">
+          <span className="qtpl-toolbar__label">Layout</span>
+          <Select
+            value={draft.id}
+            onChange={selectTemplate}
+            style={{ minWidth: 240 }}
+            options={store.templates.map((t) => ({
+              value: t.id,
+              label: t.id === store.activeId ? `${t.name} · active` : t.name,
+            }))}
+          />
+          {isActive ? (
+            <Tag color="green">Active</Tag>
+          ) : (
+            <Button size="small" onClick={onActivate} loading={isActivating} icon={<Check size={14} />}>
+              Set as active
+            </Button>
+          )}
+          {dirty && <Tag color="orange">Unsaved</Tag>}
+        </div>
+
+        <div className="qtpl-toolbar__group">
+          <Button
+            icon={<FilePlus2 size={16} />}
+            onClick={() => setNameModal({ mode: 'new', value: 'New layout' })}
+          >
+            New
+          </Button>
+          <Button
+            icon={<Copy size={16} />}
+            onClick={() => setNameModal({ mode: 'duplicate', value: `${draft.name} copy` })}
+          >
+            Duplicate
+          </Button>
+          <Dropdown
+            menu={{
+              items: [
+                { key: 'rename', icon: <Pencil size={14} />, label: 'Rename…' },
+                { key: 'export', icon: <Download size={14} />, label: 'Export JSON' },
+                { key: 'import', icon: <Upload size={14} />, label: 'Import JSON…' },
+                { key: 'reset', icon: <RotateCcw size={14} />, label: 'Reset to defaults' },
+                { type: 'divider' },
+                {
+                  key: 'delete',
+                  icon: <Trash2 size={14} />,
+                  label: 'Delete layout',
+                  danger: true,
+                  disabled: store.templates.length <= 1,
+                },
+              ],
+              onClick: ({ key }) => {
+                if (key === 'rename') setNameModal({ mode: 'rename', value: draft.name })
+                if (key === 'export') exportTemplate(draft)
+                if (key === 'import') fileInput.current?.click()
+                if (key === 'reset') setDraft(resetTemplate(draft))
+                if (key === 'delete') {
+                  modal.confirm({
+                    title: `Delete “${draft.name}”?`,
+                    content: 'This layout will be removed for everyone in the organization.',
+                    okText: 'Delete',
+                    okButtonProps: { danger: true },
+                    onOk: onDelete,
+                  })
+                }
+              },
+            }}
+          >
+            <Button icon={<MoreHorizontal size={16} />} aria-label="More layout actions" />
+          </Dropdown>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) void onImport(file)
+              e.target.value = ''
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Starting points */}
+      <div className="qtpl-presets">
+        <span className="qtpl-toolbar__label">Start from</span>
+        {TEMPLATE_PRESETS.map((preset) => (
+          <Tooltip key={preset.id} title={preset.description}>
+            <Button size="small" onClick={() => setDraft(applyPreset(draft, preset))}>
+              {preset.name}
+            </Button>
+          </Tooltip>
+        ))}
+        <span className="qtpl-presets__hint">
+          Presets restyle the page — your wording and custom blocks are kept.
+        </span>
       </div>
 
       <div className="qtpl-editor">
-        <Card title="Layout options" loading={isLoading} className="qtpl-editor__controls">
-          <Field label="Show company logo" hint="Uses the logo uploaded on the Company page.">
-            <Switch checked={draft.showLogo} onChange={(v) => set({ showLogo: v })} />
-          </Field>
-          <Field label="Logo position">
-            <Segmented<'left' | 'right'>
-              disabled={!draft.showLogo}
-              value={draft.logoPosition}
-              onChange={(v) => set({ logoPosition: v })}
-              options={[
-                { value: 'left', label: 'Left' },
-                { value: 'right', label: 'Right' },
-              ]}
-            />
-          </Field>
-          <Field label="Logo size">
-            <Segmented<LogoSize>
-              disabled={!draft.showLogo}
-              value={draft.logoSize}
-              onChange={(v) => set({ logoSize: v })}
-              options={[
-                { value: 'small', label: 'S' },
-                { value: 'medium', label: 'M' },
-                { value: 'large', label: 'L' },
-              ]}
-            />
-          </Field>
-          <Field label="Title label" hint="The big heading word on the document.">
-            <Input
-              style={{ maxWidth: 240 }}
-              value={draft.titleLabel}
-              onChange={(e) => set({ titleLabel: e.target.value })}
-              placeholder="QUOTATION"
-            />
-          </Field>
-          <Field label="Accent color" hint="Used for the title, rules and brand mark.">
-            <ColorPicker
-              value={draft.accentColor}
-              onChange={(_, hex) => set({ accentColor: hex })}
-              presets={[
-                {
-                  label: 'Suggested',
-                  colors: ['#4f46e5', '#0ea5e9', '#059669', '#e11d48', '#f59e0b', '#111827'],
-                },
-              ]}
-            />
-          </Field>
-
-          <div className="qtpl-divider" />
-
-          <Field label="Paper size">
-            <Segmented<PaperSize>
-              value={draft.paperSize}
-              onChange={(v) => set({ paperSize: v })}
-              options={[
-                { value: 'A4', label: 'A4' },
-                { value: 'Letter', label: 'Letter' },
-              ]}
-            />
-          </Field>
-          <Field label="Density">
-            <Segmented<Density>
-              value={draft.density}
-              onChange={(v) => set({ density: v })}
-              options={[
-                { value: 'compact', label: 'Compact' },
-                { value: 'normal', label: 'Normal' },
-                { value: 'relaxed', label: 'Relaxed' },
-              ]}
-            />
-          </Field>
-          <Field label="Font">
-            <Segmented<FontFamily>
-              value={draft.fontFamily}
-              onChange={(v) => set({ fontFamily: v })}
-              options={[
-                { value: 'sans', label: 'Sans' },
-                { value: 'serif', label: 'Serif' },
-              ]}
-            />
-          </Field>
-
-          <div className="qtpl-divider" />
-
-          <Field label="Packaging column">
-            <Switch
-              checked={draft.showPackagingColumn}
-              onChange={(v) => set({ showPackagingColumn: v })}
-            />
-          </Field>
-          <Field label="Description column">
-            <Switch
-              checked={draft.showDescriptionColumn}
-              onChange={(v) => set({ showDescriptionColumn: v })}
-            />
-          </Field>
-          <Field label="Accent table header" hint="Fill the header row with the accent color.">
-            <Switch checked={draft.accentHeader} onChange={(v) => set({ accentHeader: v })} />
-          </Field>
-          <Field label="Zebra rows" hint="Shade alternate rows.">
-            <Switch checked={draft.zebra} onChange={(v) => set({ zebra: v })} />
-          </Field>
-          <Field label="Signature blocks">
-            <Switch checked={draft.showSignatures} onChange={(v) => set({ showSignatures: v })} />
-          </Field>
-
-          <div className="qtpl-divider" />
-
-          <Field label="Footer text" hint="Shown at the bottom of every page (e.g. bank details, thank-you).">
-            <span />
-          </Field>
-          <TextArea
-            rows={2}
-            value={draft.footerText}
-            onChange={(e) => set({ footerText: e.target.value })}
-            placeholder="e.g. Thank you for your business · BDO 1234-5678"
-          />
-
-          <Field label="Default terms / notes" hint="Prefills the Notes on new quotations (still editable per quote).">
-            <span />
-          </Field>
-          <TextArea
-            rows={3}
-            value={draft.defaultTerms}
-            onChange={(e) => set({ defaultTerms: e.target.value })}
-            placeholder="e.g. Prices valid for 30 days. 50% down payment to begin."
-          />
+        <Card className="qtpl-editor__controls" styles={{ body: { padding: '8px 16px 20px' } }}>
+          <QuotationLayoutControls draft={draft} set={set} />
         </Card>
 
         <div className="qtpl-editor__preview">
-          <div className="qtpl-editor__preview-head">Live preview</div>
-          <QuotationDocument doc={SAMPLE_QUOTE} template={draft} />
+          <div className="qtpl-preview-bar">
+            <span className="qtpl-editor__preview-head">Live preview</span>
+            <Segmented<'short' | 'long'>
+              size="small"
+              value={sample}
+              onChange={setSample}
+              options={[
+                { value: 'short', label: '3 items' },
+                { value: 'long', label: '9 items' },
+              ]}
+            />
+            <Segmented<number>
+              size="small"
+              value={zoom}
+              onChange={setZoom}
+              options={[
+                { value: 0.5, label: '50%' },
+                { value: 0.75, label: '75%' },
+                { value: 1, label: '100%' },
+              ]}
+            />
+            <Tooltip title="Print this preview">
+              <Button
+                size="small"
+                icon={<Printer size={14} />}
+                onClick={() => window.print()}
+                aria-label="Print preview"
+              />
+            </Tooltip>
+          </div>
+          <div className="qtpl-paper" style={{ zoom }}>
+            <QuotationDocument doc={sample === 'short' ? SAMPLE_SHORT : SAMPLE_LONG} template={draft} />
+          </div>
         </div>
       </div>
+
+      <Modal
+        open={!!nameModal}
+        title={nameModal ? MODAL_TITLE[nameModal.mode] : ''}
+        okText={nameModal?.mode === 'rename' ? 'Rename' : 'Create'}
+        onOk={onNameModalOk}
+        onCancel={() => setNameModal(null)}
+        okButtonProps={{ disabled: !nameModal?.value.trim() }}
+        destroyOnHidden
+      >
+        <Input
+          autoFocus
+          value={nameModal?.value ?? ''}
+          onChange={(e) => setNameModal((m) => (m ? { ...m, value: e.target.value } : m))}
+          onPressEnter={onNameModalOk}
+          placeholder="e.g. Export customers (English)"
+        />
+      </Modal>
     </div>
   )
 }

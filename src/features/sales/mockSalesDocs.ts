@@ -26,6 +26,7 @@ import type {
  */
 
 const uid = (p: string) => `${p}_${crypto.randomUUID().slice(0, 8)}`
+const round2 = (n: number) => Math.round(n * 100) / 100
 const pad4 = (n: number) => String(n).padStart(4, '0')
 /** Two-digit year of an ISO date, e.g. '2026-07-16' → '26'. */
 const shortYear = (isoDate: string) => isoDate.slice(2, 4)
@@ -182,6 +183,7 @@ export function createInvoice(input: NewInvoice): Invoice {
     status: input.status,
     issued,
     quotationId: input.quotationId,
+    amountPaid: 0,
     ...totals,
   }
   invoices = [record, ...invoices]
@@ -227,14 +229,27 @@ export function sendInvoice(id: string): Invoice {
   return invoices.find((i) => i.id === id)!
 }
 
-/** Record payment on an issued invoice. */
-export function markInvoicePaid(id: string): Invoice {
+export function getInvoice(id: string): Invoice | undefined {
+  return invoices.find((i) => i.id === id)
+}
+
+/**
+ * Apply a collected amount to an invoice. Called only by the collections
+ * document (`mockCollections.ts`) — an invoice is never "marked paid" on its
+ * own, because settling one has to move cash in the books too. Once the whole
+ * total is in, the invoice flips to `paid`.
+ */
+export function applyInvoicePayment(id: string, amount: number): Invoice {
   const inv = invoices.find((i) => i.id === id)
   if (!inv) throw new Error('Invoice not found.')
-  if (!inv.issued) {
-    throw new Error('Send the invoice before marking it paid.')
-  }
-  invoices = invoices.map((i) => (i.id === id ? { ...i, status: 'paid' } : i))
+  if (!inv.issued) throw new Error('Send the invoice before collecting on it.')
+  const amountPaid = round2(inv.amountPaid + amount)
+  const settled = amountPaid + 0.005 >= inv.total
+  invoices = invoices.map((i) =>
+    i.id === id
+      ? { ...i, amountPaid, status: settled ? ('paid' as const) : i.status }
+      : i,
+  )
   invoiceVersion++
   return invoices.find((i) => i.id === id)!
 }
@@ -380,9 +395,21 @@ seedQuotation({
  * stock so seeding can never fail on availability. Oldest first, so INV
  * numbering reads naturally (INV-0001-26 = oldest).
  */
+const settledSeedIds: string[] = []
+
+/**
+ * Invoices the seed data considers already settled. They are NOT marked paid
+ * here — `mockCollections.ts` collects them through the real document, so the
+ * cash entries and the AR balance match the invoice statuses.
+ */
+export function seededSettledInvoiceIds(): string[] {
+  return [...settledSeedIds]
+}
+
 function seedInvoice(input: NewInvoice, paid = false): Invoice {
   const inv = createInvoice(input)
-  return paid ? markInvoicePaid(inv.id) : inv
+  if (paid) settledSeedIds.push(inv.id)
+  return inv
 }
 
 const MAIN = INVENTORY_LOCATIONS[0]

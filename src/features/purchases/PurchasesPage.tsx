@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
@@ -7,13 +6,13 @@ import dayjs from 'dayjs'
 import { useGetPurchasesQuery } from '../inventory/inventoryApi'
 import {
   PURCHASE_TYPE_LABELS,
+  purchaseOutstanding,
   purchasePaymentStatus,
-  type PaymentStatus,
   type Purchase,
   type PurchaseLine,
   type PurchaseType,
 } from '../inventory/types'
-import PayPurchaseModal from './PayPurchaseModal'
+import { SETTLEMENT_TAG } from '../../shared/settlement'
 
 const peso = (v: number) =>
   new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(v)
@@ -33,14 +32,7 @@ const lineTypes = (p: Purchase): PurchaseType[] => {
   return order.filter((t) => present.has(t))
 }
 
-const PAYMENT_TAG: Record<PaymentStatus, { label: string; color: string }> = {
-  unpaid: { label: 'Unpaid', color: 'error' },
-  partial: { label: 'Partial', color: 'warning' },
-  paid: { label: 'Paid', color: 'success' },
-}
-
-const outstandingOf = (p: Purchase) =>
-  Math.round((p.netPayable - p.amountPaid) * 100) / 100
+const outstandingOf = (p: Purchase) => purchaseOutstanding(p)
 
 const columns: ColumnsType<Purchase> = [
   {
@@ -97,7 +89,7 @@ const columns: ColumnsType<Purchase> = [
     key: 'payment',
     render: (_, r) => {
       const status = purchasePaymentStatus(r)
-      const tag = PAYMENT_TAG[status]
+      const tag = SETTLEMENT_TAG[status]
       return (
         <div>
           <Tag color={tag.color}>{tag.label}</Tag>
@@ -138,8 +130,9 @@ const lineColumns: ColumnsType<PurchaseLine> = [
 
 function PurchasesPage() {
   const { data: purchases, isLoading } = useGetPurchasesQuery()
-  const [paying, setPaying] = useState<Purchase | null>(null)
 
+  // Paying opens the payment document with this order pre-allocated, so there's
+  // one settlement path (vendor → allocation → orders), not two.
   const actionColumn: ColumnsType<Purchase>[number] = {
     title: '',
     key: 'action',
@@ -148,9 +141,11 @@ function PurchasesPage() {
       purchasePaymentStatus(r) === 'paid' ? (
         <span className="text-tertiary">Settled</span>
       ) : (
-        <Button size="small" type="primary" ghost onClick={() => setPaying(r)}>
-          Pay
-        </Button>
+        <Link to={`/purchases/payments/new?purchase=${r.id}`}>
+          <Button size="small" type="primary" ghost>
+            Pay
+          </Button>
+        </Link>
       ),
   }
 
@@ -202,8 +197,6 @@ function PurchasesPage() {
           ),
         }}
       />
-
-      <PayPurchaseModal purchase={paying} onClose={() => setPaying(null)} />
     </div>
   )
 }

@@ -1,3 +1,9 @@
+import {
+  outstandingOf,
+  settlementStatus,
+  type SettlementStatus,
+} from '../../shared/settlement'
+
 export interface Material {
   id: string
   name: string
@@ -357,37 +363,79 @@ export interface Purchase {
   amountPaid: number // running total settled via vendor payments (0 until paid)
 }
 
-export type PaymentStatus = 'unpaid' | 'partial' | 'paid'
+export type PaymentStatus = SettlementStatus
 
 /** Where a purchase stands on settlement, derived from its payable vs paid. */
 export function purchasePaymentStatus(p: {
   netPayable: number
   amountPaid: number
 }): PaymentStatus {
-  if (p.amountPaid <= 0.005) return 'unpaid'
-  if (p.amountPaid + 0.005 >= p.netPayable) return 'paid'
-  return 'partial'
+  return settlementStatus(p.netPayable, p.amountPaid)
 }
 
-/** A recorded payment settling (part of) a purchase's payable. */
+/** What a purchase still owes the vendor. */
+export function purchaseOutstanding(p: {
+  netPayable: number
+  amountPaid: number
+}): number {
+  return outstandingOf(p.netPayable, p.amountPaid)
+}
+
+/** One purchase order a payment was applied to, and for how much. */
+export interface PaymentAllocation {
+  purchaseId: string
+  purchaseRef: string
+  purchaseDate: string
+  /** The order's payable at the time of allocation (for the audit trail). */
+  purchaseTotal: number
+  /** What this line settles on the order — cash plus any tax withheld. */
+  amount: number
+  /** Tax withheld from this line and remitted to the BIR instead of the vendor. */
+  withholdingTax: number
+}
+
+/**
+ * A vendor payment: money paid to ONE vendor on one date through one payment
+ * method, allocated across one or more of that vendor's open purchase orders.
+ * `amount` is always Σ allocations — the money is never left hanging.
+ *
+ * Withholding tax is carved out of the allocated amount: the order is settled
+ * in full by `amount`, but only `cashAmount` leaves the bank — the withheld
+ * balance becomes a liability to the BIR (the vendor gets a 2307 for it).
+ */
 export interface Payment {
   id: string
   reference: string // PMT-001
   date: string
-  purchaseId: string
-  purchaseRef: string
   vendorId: string
   vendorName: string
   paymentMethodId: string
   paymentMethodName: string
+  note: string
+  allocations: PaymentAllocation[]
+  amount: number // Σ allocations — what the payables were relieved by
+  withholdingTaxId?: string
+  withholdingLabel?: string // e.g. "Withholding Tax 2%"
+  withholdingTotal: number // Σ tax withheld
+  cashAmount: number // amount − withholdingTotal — what actually left the account
+}
+
+/** One line of a payment as submitted from the form. */
+export interface PaymentAllocationInput {
+  purchaseId: string
   amount: number
+  /** Withheld from this line; must not exceed `amount`. Defaults to 0. */
+  withholdingTax?: number
 }
 
 export interface NewVendorPayment {
-  purchaseId: string
-  paymentMethodId: string
   date: string
-  amount: number
+  vendorId: string
+  paymentMethodId: string
+  note: string
+  /** The withholding tax applied — required once any line withholds. */
+  withholdingTaxId?: string
+  allocations: PaymentAllocationInput[]
 }
 
 /** One line of a sale: an item issued at a given unit price. */
@@ -408,6 +456,8 @@ export interface Sale {
   customerName: string
   lines: SaleLine[]
   total: number
+  /** Running total collected against this order (0 until a collection lands). */
+  amountPaid: number
 }
 
 /** A document line as submitted from a form (names/units resolved server-side). */

@@ -18,6 +18,7 @@ const ACC = {
   opex: 'acc_opex',
   ap: 'acc_ap',
   wht: 'acc_wht',
+  whtRecv: 'acc_wht_recv',
   vatIn: 'acc_vat_in',
   sales: 'acc_sales',
   cogs: 'acc_cogs',
@@ -79,10 +80,13 @@ export function postPurchaseEntry(opts: {
 }
 
 /**
- * Vendor payment — settling a purchase's payable. Reduces what you owe and the
- * cash/bank the payment method draws from:  Dr Accounts Payable / Cr <cash|bank>.
- * Withholding was already split off at purchase time, so this only clears the
- * net payable.
+ * Vendor payment — settling purchase payables. The payable is relieved by the
+ * full amount allocated; any tax withheld never reaches the vendor, so it
+ * splits off as a liability to the BIR instead of leaving the bank:
+ *   Dr Accounts Payable (amount)
+ *     Cr <cash|bank>          (amount − withholding)
+ *     Cr Withholding Tax Payable (withholding)
+ * With no withholding this is the plain two-line entry.
  */
 export function postVendorPaymentEntry(opts: {
   date: string
@@ -90,12 +94,59 @@ export function postVendorPaymentEntry(opts: {
   party: string
   amount: number
   creditAccountId: string
+  /** Tax withheld from the vendor, and the account it's credited to. */
+  withholding?: number
+  withholdingAccountId?: string
 }): void {
   if (opts.amount <= 0) return
+  const withholding = round2(opts.withholding ?? 0)
+  const cash = round2(opts.amount - withholding)
+  const lines: JournalLine[] = [dr(ACC.ap, opts.amount)]
+  if (cash > 0) lines.push(cr(opts.creditAccountId, cash))
+  if (withholding > 0) {
+    lines.push(cr(opts.withholdingAccountId ?? ACC.wht, withholding))
+  }
   addJournalEntry({
     date: opts.date,
     memo: `Payment ${opts.reference}${suffix(opts.party)}`,
-    lines: [dr(ACC.ap, opts.amount), cr(opts.creditAccountId, opts.amount)],
+    lines,
+  })
+}
+
+/**
+ * Customer collection — money received against invoices / sales orders. The
+ * mirror of a vendor payment: the receivable clears in full, but anything the
+ * customer withheld arrives as a tax credit certificate rather than cash, so it
+ * lands in Creditable Withholding Tax (an asset, claimable against income tax):
+ *   Dr <cash|bank>                  (amount − withholding)
+ *   Dr Creditable Withholding Tax   (withholding)
+ *     Cr Accounts Receivable        (amount)
+ * Output tax was already recognised when the sale was booked, so a collection
+ * only moves the receivable.
+ */
+export function postCollectionEntry(opts: {
+  date: string
+  reference: string
+  party: string
+  amount: number
+  debitAccountId: string
+  /** Tax the customer withheld, and the account it's debited to. */
+  withholding?: number
+  withholdingAccountId?: string
+}): void {
+  if (opts.amount <= 0) return
+  const withholding = round2(opts.withholding ?? 0)
+  const cash = round2(opts.amount - withholding)
+  const lines: JournalLine[] = []
+  if (cash > 0) lines.push(dr(opts.debitAccountId, cash))
+  if (withholding > 0) {
+    lines.push(dr(opts.withholdingAccountId ?? ACC.whtRecv, withholding))
+  }
+  lines.push(cr(ACC.ar, opts.amount))
+  addJournalEntry({
+    date: opts.date,
+    memo: `Collection ${opts.reference}${suffix(opts.party)}`,
+    lines,
   })
 }
 

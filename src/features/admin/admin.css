@@ -160,12 +160,58 @@
   font-weight: 400;
 }
 
-/* Quotation layout editor: controls + live preview */
+/* Quotation layout editor: library toolbar + controls + live preview */
+
+.qtpl-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.qtpl-toolbar__group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.qtpl-toolbar__label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-subtle);
+}
+
+.qtpl-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.qtpl-presets__hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-subtle);
+}
+
 .qtpl-editor {
   display: grid;
-  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  grid-template-columns: minmax(360px, 460px) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
+}
+/* Both panes scroll on their own so the preview stays put while you work. */
+.qtpl-editor__controls {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
 }
 .qtpl-editor__preview {
   position: sticky;
@@ -173,21 +219,49 @@
   max-height: calc(100vh - 32px);
   overflow: auto;
 }
+.qtpl-preview-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 10px;
+  background: var(--bg);
+}
 .qtpl-editor__preview-head {
-  margin-bottom: 10px;
+  margin-right: auto;
   font-weight: 600;
   color: var(--text);
 }
+/* The zoom control scales the paper via `zoom` so the pane's scroll height
+   follows the scaled page (a transform would leave dead space below it). */
+.qtpl-paper {
+  padding-bottom: 24px;
+}
+
+/* Tabs of controls */
+.qtpl-tabs .ant-tabs-nav {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-bottom: 4px;
+  background: var(--surface);
+}
+
 .qtpl-field {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 10px 0;
+  padding: 9px 0;
 }
-.qtpl-field + .ant-input,
-.qtpl-field + textarea {
-  margin-bottom: 6px;
+/* Wide controls (inputs, sliders) drop below their label. */
+.qtpl-field--stacked {
+  display: block;
+}
+.qtpl-field--stacked .qtpl-field__control {
+  margin-top: 6px;
 }
 .qtpl-field__label {
   font-weight: 500;
@@ -197,25 +271,119 @@
   margin-top: 2px;
   font-size: var(--font-size-xs);
   color: var(--text-subtle);
-  max-width: 260px;
+  max-width: 280px;
 }
 .qtpl-field__control {
   flex: none;
 }
-.qtpl-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 6px 0;
+
+.qtpl-group {
+  margin: 14px 0 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-subtle);
+}
+.qtpl-note {
+  margin: 0 0 10px;
+  font-size: var(--font-size-xs);
+  color: var(--text-subtle);
 }
 
-@media (max-width: 1100px) {
+/* Four small numeric inputs side by side (page margins) */
+.qtpl-grid4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.qtpl-mini {
+  display: grid;
+  gap: 3px;
+}
+.qtpl-mini span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-subtle);
+}
+.qtpl-mini .ant-input-number {
+  width: 100%;
+}
+
+/* Reorderable list editors (columns, sections, meta rows, signatures) */
+.qtpl-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.qtpl-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--color-surface-alt);
+}
+.qtpl-row__move {
+  display: grid;
+  flex: none;
+  padding-top: 1px;
+}
+.qtpl-row__move .ant-btn {
+  height: 18px;
+  min-width: 22px;
+  padding: 0;
+}
+.qtpl-row__body {
+  display: grid;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.qtpl-row__grid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qtpl-row__grid > .ant-input,
+.qtpl-row__grid > .ant-select {
+  min-width: 0;
+}
+.qtpl-row__grid > .ant-input:first-child {
+  flex: 1;
+}
+.qtpl-row__title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  color: var(--text);
+}
+.qtpl-row__end {
+  flex: none;
+  width: 24px;
+}
+
+@media (max-width: 1240px) {
   .qtpl-editor {
     grid-template-columns: 1fr;
   }
+  .qtpl-editor__controls,
   .qtpl-editor__preview {
     position: static;
     max-height: none;
     overflow: visible;
+  }
+}
+
+/* Printing the preview: the document component's own @media print rules take
+   over — just make sure the editor's zoom doesn't shrink the printed page. */
+@media print {
+  .qtpl-paper {
+    zoom: 1 !important;
   }
 }
 

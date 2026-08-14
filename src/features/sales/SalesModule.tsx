@@ -6,6 +6,7 @@ import SectionCard from '../modules/SectionCard'
 import { SALES_SECTIONS } from '../modules/plannedSections'
 import { useGetSalesQuery } from '../inventory/inventoryApi'
 import { useGetInvoicesQuery } from './salesDocsApi'
+import { openReceivables } from './receivables'
 import '../modules/ModulePage.css'
 
 const peso = (v: number) =>
@@ -22,10 +23,12 @@ function SalesModule() {
     (s, x) => s + x.lines.reduce((n, l) => n + l.quantity, 0),
     0,
   )
-  // Outstanding = issued-but-unpaid invoices.
-  const outstanding = invoices
-    ?.filter((i) => i.status === 'sent')
-    .reduce((s, i) => s + i.total, 0)
+  // Outstanding = what's still uncollected across invoices AND sales orders,
+  // net of any part payments already allocated to them.
+  const outstanding =
+    invoices && sales
+      ? openReceivables(invoices, sales).reduce((s, r) => s + r.outstanding, 0)
+      : undefined
 
   return (
     <div className="module-view">
@@ -55,7 +58,7 @@ function SalesModule() {
         />
         <StatCard
           icon={<ReceiptText size={20} />}
-          label="Outstanding Invoices"
+          label="Outstanding Receivables"
           value={outstanding != null ? peso(outstanding) : '—'}
           tone="neutral"
         />

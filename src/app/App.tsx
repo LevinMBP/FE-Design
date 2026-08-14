@@ -43,6 +43,8 @@ import LocationDetailPage from '../features/inventory/locations/LocationDetailPa
 import PurchasesModule from '../features/purchases/PurchasesModule'
 import PurchasesPage from '../features/purchases/PurchasesPage'
 import PurchaseFormPage from '../features/purchases/PurchaseFormPage'
+import PaymentsPage from '../features/purchases/payments/PaymentsPage'
+import PaymentFormPage from '../features/purchases/payments/PaymentFormPage'
 import SalesModule from '../features/sales/SalesModule'
 import SalesPage from '../features/sales/SalesPage'
 import SaleFormPage from '../features/sales/SaleFormPage'
@@ -51,6 +53,8 @@ import QuotationFormPage from '../features/sales/quotations/QuotationFormPage'
 import QuotationDetailPage from '../features/sales/quotations/QuotationDetailPage'
 import InvoicesPage from '../features/sales/invoices/InvoicesPage'
 import InvoiceFormPage from '../features/sales/invoices/InvoiceFormPage'
+import CollectionsPage from '../features/sales/collections/CollectionsPage'
+import CollectionFormPage from '../features/sales/collections/CollectionFormPage'
 import SalesBreakdownPage from '../features/sales/reports/SalesBreakdownPage'
 import CustomersPage from '../features/contacts/customers/CustomersPage'
 import CustomerFormPage from '../features/contacts/customers/CustomerFormPage'
@@ -175,6 +179,8 @@ function App() {
         <Route path="/purchases" element={<PurchasesModule />} />
         <Route path="/purchases/orders" element={<PurchasesPage />} />
         <Route path="/purchases/orders/new" element={<PurchaseFormPage />} />
+        <Route path="/purchases/payments" element={<PaymentsPage />} />
+        <Route path="/purchases/payments/new" element={<PaymentFormPage />} />
         <Route path="/sales" element={<SalesModule />} />
         <Route path="/sales/quotations" element={<QuotationsPage />} />
         <Route path="/sales/quotations/new" element={<QuotationFormPage />} />
@@ -183,6 +189,8 @@ function App() {
         <Route path="/sales/invoices/new" element={<InvoiceFormPage />} />
         <Route path="/sales/orders" element={<SalesPage />} />
         <Route path="/sales/orders/new" element={<SaleFormPage />} />
+        <Route path="/sales/collections" element={<CollectionsPage />} />
+        <Route path="/sales/collections/new" element={<CollectionFormPage />} />
         <Route path="/sales/reports/breakdown" element={<SalesBreakdownPage />} />
         <Route path="/accounting" element={<AccountingModule />} />
         <Route path="/accounting/accounts" element={<ChartOfAccountsPage />} />
