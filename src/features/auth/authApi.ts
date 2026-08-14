@@ -1,12 +1,23 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react'
-import { findUserByEmail, updateUser } from './mockDb'
+import {
+  findUserByEmail,
+  issueVerificationToken,
+  redeemVerificationToken,
+  updateUser,
+} from './mockDb'
 import {
   clearSession,
   loadSession,
   saveSession,
   updateStoredSessionUser,
 } from './session'
-import type { LoginRequest, Session, User } from './types'
+import type {
+  LoginRequest,
+  ResendVerificationResult,
+  Session,
+  User,
+  VerifyEmailResult,
+} from './types'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -65,6 +76,31 @@ export const authApi = createApi({
       },
     }),
 
+    /**
+     * Redeems the token from a confirmation email. A rejected token (expired,
+     * already used, unknown) still resolves with `data` — the page shows a
+     * different screen per status — so `error` means the request itself failed.
+     */
+    verifyEmail: builder.mutation<VerifyEmailResult, { token: string }>({
+      queryFn: async ({ token }) => {
+        await delay(900) // simulate network latency
+        return { data: redeemVerificationToken(token) }
+      },
+    }),
+
+    /** Mails a fresh link when the one the user clicked has expired. */
+    resendVerification: builder.mutation<
+      ResendVerificationResult,
+      { token: string }
+    >({
+      queryFn: async ({ token }) => {
+        await delay(800)
+        const issued = issueVerificationToken(token)
+        if (!issued) return { error: 'We could not find that account.' }
+        return { data: issued }
+      },
+    }),
+
     updateProfile: builder.mutation<User, { id: string; name: string }>({
       queryFn: async ({ id, name }) => {
         await delay(400)
@@ -81,5 +117,7 @@ export const {
   useGetSessionQuery,
   useLoginMutation,
   useLogoutMutation,
+  useResendVerificationMutation,
   useUpdateProfileMutation,
+  useVerifyEmailMutation,
 } = authApi

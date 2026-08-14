@@ -13,6 +13,7 @@ import type { User, UserStatus } from './types'
 /** A seed user in the mock DB — includes the password, unlike the app-facing User. */
 interface MockUser extends User {
   password: string
+  emailVerified: boolean
 }
 
 /**
@@ -25,33 +26,22 @@ export const users: MockUser[] = [
     name: 'Ava Reyes',
     email: 'admin@venturo.app',
     password: 'password123',
-    organizationId: SEED_ORG_ID,
-    roleIds: [SEED_ROLE_ADMIN],
-    positionId: SEED_POS_DIRECTOR,
-    userPermissions: [],
-    status: 'active',
+    role: 'admin',
+    emailVerified: true,
   },
   {
     id: 'usr_2',
     name: 'Marcus Lee',
     email: 'manager@venturo.app',
     password: 'password123',
-    organizationId: SEED_ORG_ID,
-    roleIds: [SEED_ROLE_MANAGER],
-    positionId: SEED_POS_WH_MANAGER,
-    userPermissions: [],
-    status: 'active',
+    role: 'manager',
   },
   {
     id: 'usr_3',
     name: 'Priya Nair',
     email: 'staff@venturo.app',
     password: 'password123',
-    organizationId: SEED_ORG_ID,
-    roleIds: [SEED_ROLE_STAFF],
-    positionId: SEED_POS_CLERK,
-    userPermissions: [],
-    status: 'active',
+    role: 'staff',
   },
 ]
 
@@ -74,11 +64,7 @@ export function findUserByEmail(email: string): MockUser | undefined {
   return users.find((u) => u.email.toLowerCase() === normalized)
 }
 
-export function listUsers(): User[] {
-  return users.map(toUser)
-}
-
-/** Patch a seed user and return the app-facing User. */
+/** Patch a seed user and return the app-facing (password-free) User. */
 export function updateUser(
   id: string,
   patch: Partial<Pick<MockUser, 'name'>>,

@@ -7,6 +7,7 @@ import { useThemeSync } from '../features/ui/useThemeSync'
 import { useCompanyFavicon } from '../features/admin/useCompanyFavicon'
 import AppShell from '../layout/AppShell'
 import LoginPage from '../features/auth/components/LoginPage'
+import VerifyEmailPage from '../features/auth/components/VerifyEmailPage'
 import ModuleSelection from '../features/modules/ModuleSelection'
 import InventoryModule from '../features/inventory/InventoryModule'
 import MaterialsPage from '../features/inventory/materials/MaterialsPage'
@@ -96,6 +97,11 @@ function App() {
         path="/login"
         element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
       />
+
+      {/* Email confirmation — public, and reachable while signed in or out.
+          The token rides in the query string or as the last path segment. */}
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
 
       {/* Module launcher — full-screen, outside the dashboard shell. */}
       <Route

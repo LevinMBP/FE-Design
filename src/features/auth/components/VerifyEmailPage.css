@@ -1,0 +1,217 @@
+/* ============ Layout ============ */
+.verify-page {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+  background: var(--bg);
+}
+
+.verify-card {
+  width: 100%;
+  max-width: 460px;
+  padding: 40px 36px 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+
+.verify-card__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+  margin-bottom: 32px;
+}
+
+/* ============ Body ============ */
+.verify-body h1 {
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+
+.verify-body > p {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.verify-body > p strong {
+  color: var(--text);
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* ---- Status icon ---- */
+.verify-icon {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+}
+
+.verify-icon--success {
+  background: var(--color-success-soft-bg);
+  color: var(--color-success-text);
+}
+
+.verify-icon--warning {
+  background: var(--color-warning-soft-bg);
+  color: var(--color-warning-text);
+}
+
+.verify-icon--danger {
+  background: var(--color-danger-soft-bg);
+  color: var(--color-danger-text);
+}
+
+.verify-icon--brand {
+  background: var(--color-primary-soft-bg);
+  color: var(--color-primary-soft-text);
+}
+
+.verify-spin {
+  animation: verify-spin 0.9s linear infinite;
+}
+
+@keyframes verify-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verify-spin {
+    animation-duration: 2.4s;
+  }
+}
+
+/* ============ Actions ============ */
+.verify-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.verify-btn {
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--btn-primary-bg);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+
+.verify-btn:hover:not(:disabled) {
+  background: var(--btn-primary-hover-bg);
+  color: #fff;
+}
+
+.verify-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.verify-btn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.verify-btn--ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.verify-btn--ghost:hover {
+  background: var(--bg);
+  border-color: var(--text-subtle);
+  color: var(--text);
+}
+
+/* ---- Inline result notes (resend feedback) ---- */
+.verify-note {
+  margin: 4px 0 0;
+  padding: 11px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.verify-note--success {
+  background: var(--color-success-soft-bg);
+  color: var(--color-success-text);
+}
+
+.verify-note--danger {
+  background: var(--color-danger-soft-bg);
+  color: var(--color-danger-text);
+}
+
+/* ============ Footer ============ */
+.verify-help {
+  margin: 28px 0 0;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.verify-help a {
+  color: var(--brand);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.verify-help a:hover {
+  text-decoration: underline;
+}
+
+/* ---- Demo token hint (mock DB only) ---- */
+.verify-demo {
+  margin-top: 22px;
+  padding: 11px 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  word-break: break-word;
+}
+
+.verify-demo strong {
+  color: var(--text);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 520px) {
+  .verify-card {
+    padding: 32px 22px 26px;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+  }
+}
