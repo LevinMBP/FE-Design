@@ -8,11 +8,12 @@ import {
   SEED_ROLE_STAFF,
 } from '../admin/rbac/mockRbac'
 import type { UserPermission } from '../admin/rbac/rbacTypes'
-import type { User, UserStatus } from './types'
+import type { User, UserStatus, VerifyEmailResult } from './types'
 
 /** A seed user in the mock DB — includes the password, unlike the app-facing User. */
 interface MockUser extends User {
   password: string
+  /** Flipped by redeeming a confirmation token; see `redeemVerificationToken`. */
   emailVerified: boolean
 }
 
@@ -26,7 +27,11 @@ export const users: MockUser[] = [
     name: 'Ava Reyes',
     email: 'admin@venturo.app',
     password: 'password123',
-    role: 'admin',
+    organizationId: SEED_ORG_ID,
+    roleIds: [SEED_ROLE_ADMIN],
+    positionId: SEED_POS_DIRECTOR,
+    userPermissions: [],
+    status: 'active',
     emailVerified: true,
   },
   {
@@ -34,14 +39,24 @@ export const users: MockUser[] = [
     name: 'Marcus Lee',
     email: 'manager@venturo.app',
     password: 'password123',
-    role: 'manager',
+    organizationId: SEED_ORG_ID,
+    roleIds: [SEED_ROLE_MANAGER],
+    positionId: SEED_POS_WH_MANAGER,
+    userPermissions: [],
+    status: 'active',
+    emailVerified: false,
   },
   {
     id: 'usr_3',
     name: 'Priya Nair',
     email: 'staff@venturo.app',
     password: 'password123',
-    role: 'staff',
+    organizationId: SEED_ORG_ID,
+    roleIds: [SEED_ROLE_STAFF],
+    positionId: SEED_POS_CLERK,
+    userPermissions: [],
+    status: 'active',
+    emailVerified: false,
   },
 ]
 
@@ -64,7 +79,11 @@ export function findUserByEmail(email: string): MockUser | undefined {
   return users.find((u) => u.email.toLowerCase() === normalized)
 }
 
-/** Patch a seed user and return the app-facing (password-free) User. */
+export function listUsers(): User[] {
+  return users.map(toUser)
+}
+
+/** Patch a seed user and return the app-facing User. */
 export function updateUser(
   id: string,
   patch: Partial<Pick<MockUser, 'name'>>,
@@ -101,6 +120,8 @@ export function addUser(input: NewUser): User {
     positionId: input.positionId,
     userPermissions: [],
     status: 'active',
+    // An invited user confirms via the link mailed to them.
+    emailVerified: false,
   }
   users.push(record)
   return toUser(record)
@@ -132,4 +153,92 @@ export function setUserStatus(id: string, status: UserStatus): User | undefined 
   if (!found) return undefined
   found.status = status
   return toUser(found)
+}
+
+/* ============ Email confirmation tokens ============ */
+
+interface VerificationToken {
+  token: string
+  userId: string
+  /** epoch ms after which the token can no longer be redeemed */
+  expiresAt: number
+  /** epoch ms when it was redeemed, or null while still unused */
+  usedAt: number | null
+}
+
+const HOUR_MS = 60 * 60 * 1000
+
+/**
+ * Seed tokens so every branch of the confirmation page can be walked without a
+ * backend. Hit /verify-email?token=<one of these> to see each state:
+ *   demo-valid-token    → success
+ *   demo-expired-token  → expired, with a resend option
+ *   demo-used-token     → already confirmed
+ *   anything else       → invalid link
+ */
+export const verificationTokens: VerificationToken[] = [
+  {
+    token: 'demo-valid-token',
+    userId: 'usr_2',
+    expiresAt: Date.now() + 24 * HOUR_MS,
+    usedAt: null,
+  },
+  {
+    token: 'demo-expired-token',
+    userId: 'usr_3',
+    expiresAt: Date.now() - HOUR_MS,
+    usedAt: null,
+  },
+  {
+    token: 'demo-used-token',
+    userId: 'usr_1',
+    expiresAt: Date.now() + 24 * HOUR_MS,
+    usedAt: Date.now() - 2 * HOUR_MS,
+  },
+]
+
+/**
+ * Redeem a confirmation token. Marks the token used and flips the user's
+ * `emailVerified` flag on success; every other outcome leaves the DB untouched.
+ */
+export function redeemVerificationToken(token: string): VerifyEmailResult {
+  const record = verificationTokens.find((t) => t.token === token.trim())
+  if (!record) return { status: 'invalid' }
+
+  const user = users.find((u) => u.id === record.userId)
+  if (!user) return { status: 'invalid' }
+
+  if (record.usedAt !== null || user.emailVerified) {
+    return { status: 'already-verified', email: user.email }
+  }
+  if (record.expiresAt < Date.now()) {
+    return { status: 'expired', email: user.email }
+  }
+
+  record.usedAt = Date.now()
+  user.emailVerified = true
+  return { status: 'verified', email: user.email }
+}
+
+/**
+ * Issue a replacement token for whoever the (expired) token belonged to.
+ * Returns undefined when the original token isn't one we know about.
+ */
+export function issueVerificationToken(
+  previousToken: string,
+): { email: string; token: string } | undefined {
+  const record = verificationTokens.find((t) => t.token === previousToken.trim())
+  if (!record) return undefined
+
+  const user = users.find((u) => u.id === record.userId)
+  if (!user) return undefined
+
+  const token = crypto.randomUUID()
+  verificationTokens.push({
+    token,
+    userId: user.id,
+    expiresAt: Date.now() + 24 * HOUR_MS,
+    usedAt: null,
+  })
+  return { email: user.email, token }
 }
