@@ -9,6 +9,22 @@ import {
 import { getItemLedger, listStockItems } from './mockStockMovements'
 import { listManufactureRuns, runManufacture, runManufactureBatch } from './mockManufacturing'
 import { createPurchase, listPurchases, nextPurchaseRef } from './mockPurchases'
+import {
+  buildMonthlyPurchasesByItem,
+  buildMonthlyPurchasesByOrder,
+  buildMonthlyPurchasesByVendor,
+  buildPurchasesByItem,
+  buildPurchasesByOrder,
+  buildPurchasesByVendor,
+} from './purchaseBreakdown'
+import {
+  buildMonthlyStockByItem,
+  buildMonthlyStockByLocation,
+  buildMonthlyStockBySource,
+  buildStockByItem,
+  buildStockByLocation,
+  buildStockBySource,
+} from './stockBreakdown'
 import { listPayments, nextPaymentRef, recordVendorPayment } from './mockPayments'
 import { createSale, listSales } from './mockSales'
 import { recordOpeningBalance } from './mockOpeningBalance'
@@ -16,6 +32,26 @@ import { addLocation, listLocations } from './mockLocations'
 import { createAudit, listAudits } from './mockAudits'
 import { createAdjustment, listAdjustments } from './mockAdjustments'
 import { recordAuditEvent } from '../admin/mockAuditLog'
+import type {
+  ItemStockRow,
+  LocationStockRow,
+  SourceStockRow,
+  StockBreakdownFilter,
+  StockByItemReport,
+  StockByLocationReport,
+  StockByMonthReport,
+  StockBySourceReport,
+} from './stockBreakdown'
+import type {
+  ItemPurchaseRow,
+  OrderPurchaseRow,
+  PurchaseBreakdownFilter,
+  PurchasesByItemReport,
+  PurchasesByMonthReport,
+  PurchasesByOrderReport,
+  PurchasesByVendorReport,
+  VendorPurchaseRow,
+} from './purchaseBreakdown'
 import type {
   Adjustment,
   Audit,
@@ -221,6 +257,75 @@ export const inventoryApi = createApi({
       providesTags: ['Stock'],
     }),
 
+    /**
+     * Stock movement breakdown — the roll-forward (opening + in − out =
+     * closing) per item, per source or per location. All six views read the
+     * same period split; only the pivot differs.
+     */
+    getStockByItem: builder.query<StockByItemReport, StockBreakdownFilter | void>({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildStockByItem(filter ?? undefined) }
+      },
+      providesTags: ['Stock'],
+    }),
+
+    getStockBySource: builder.query<
+      StockBySourceReport,
+      StockBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildStockBySource(filter ?? undefined) }
+      },
+      providesTags: ['Stock'],
+    }),
+
+    getStockByLocation: builder.query<
+      StockByLocationReport,
+      StockBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildStockByLocation(filter ?? undefined) }
+      },
+      providesTags: ['Stock'],
+    }),
+
+    /** The same figures split by month: each month opening where the last closed. */
+    getMonthlyStockByItem: builder.query<
+      StockByMonthReport<ItemStockRow>,
+      StockBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildMonthlyStockByItem(filter ?? undefined) }
+      },
+      providesTags: ['Stock'],
+    }),
+
+    getMonthlyStockBySource: builder.query<
+      StockByMonthReport<SourceStockRow>,
+      StockBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildMonthlyStockBySource(filter ?? undefined) }
+      },
+      providesTags: ['Stock'],
+    }),
+
+    getMonthlyStockByLocation: builder.query<
+      StockByMonthReport<LocationStockRow>,
+      StockBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildMonthlyStockByLocation(filter ?? undefined) }
+      },
+      providesTags: ['Stock'],
+    }),
+
     getPurchases: builder.query<Purchase[], void>({
       queryFn: async () => {
         await delay(250)
@@ -253,6 +358,77 @@ export const inventoryApi = createApi({
       onQueryStarted: async (_arg, { dispatch, queryFulfilled }) => {
         await refreshLedger(dispatch, queryFulfilled)
       },
+    }),
+
+    /**
+     * Purchase breakdown — spend per item, per order or per vendor over a
+     * period. All six views read the same cells; only the pivot differs.
+     */
+    getPurchasesByItem: builder.query<
+      PurchasesByItemReport,
+      PurchaseBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildPurchasesByItem(filter ?? undefined) }
+      },
+      providesTags: ['Purchase'],
+    }),
+
+    getPurchasesByOrder: builder.query<
+      PurchasesByOrderReport,
+      PurchaseBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildPurchasesByOrder(filter ?? undefined) }
+      },
+      providesTags: ['Purchase'],
+    }),
+
+    getPurchasesByVendor: builder.query<
+      PurchasesByVendorReport,
+      PurchaseBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildPurchasesByVendor(filter ?? undefined) }
+      },
+      providesTags: ['Purchase'],
+    }),
+
+    /** The same figures split by month: per-month totals plus running totals. */
+    getMonthlyPurchasesByItem: builder.query<
+      PurchasesByMonthReport<ItemPurchaseRow>,
+      PurchaseBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildMonthlyPurchasesByItem(filter ?? undefined) }
+      },
+      providesTags: ['Purchase'],
+    }),
+
+    getMonthlyPurchasesByOrder: builder.query<
+      PurchasesByMonthReport<OrderPurchaseRow>,
+      PurchaseBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildMonthlyPurchasesByOrder(filter ?? undefined) }
+      },
+      providesTags: ['Purchase'],
+    }),
+
+    getMonthlyPurchasesByVendor: builder.query<
+      PurchasesByMonthReport<VendorPurchaseRow>,
+      PurchaseBreakdownFilter | void
+    >({
+      queryFn: async (filter) => {
+        await delay(250)
+        return { data: buildMonthlyPurchasesByVendor(filter ?? undefined) }
+      },
+      providesTags: ['Purchase'],
     }),
 
     getPayments: builder.query<Payment[], void>({
@@ -388,9 +564,21 @@ export const {
   useGetStockItemsQuery,
   useGetStockItemsAtLocationQuery,
   useGetItemLedgerQuery,
+  useGetStockByItemQuery,
+  useGetStockBySourceQuery,
+  useGetStockByLocationQuery,
+  useGetMonthlyStockByItemQuery,
+  useGetMonthlyStockBySourceQuery,
+  useGetMonthlyStockByLocationQuery,
   useGetPurchasesQuery,
   useGetNextPurchaseRefQuery,
   useAddPurchaseMutation,
+  useGetPurchasesByItemQuery,
+  useGetPurchasesByOrderQuery,
+  useGetPurchasesByVendorQuery,
+  useGetMonthlyPurchasesByItemQuery,
+  useGetMonthlyPurchasesByOrderQuery,
+  useGetMonthlyPurchasesByVendorQuery,
   useGetPaymentsQuery,
   useGetNextPaymentRefQuery,
   useAddVendorPaymentMutation,

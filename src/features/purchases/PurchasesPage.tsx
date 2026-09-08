@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react'
 import dayjs from 'dayjs'
 import { useGetPurchasesQuery } from '../inventory/inventoryApi'
 import {
+  PURCHASE_TYPE_COLOR,
   PURCHASE_TYPE_LABELS,
   purchaseOutstanding,
   purchasePaymentStatus,
@@ -16,14 +17,6 @@ import { SETTLEMENT_TAG } from '../../shared/settlement'
 
 const peso = (v: number) =>
   new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(v)
-
-const TYPE_COLOR: Record<PurchaseType, string> = {
-  material: 'blue',
-  product: 'geekblue',
-  asset: 'purple',
-  service: 'cyan',
-  expense: 'gold',
-}
 
 /** Distinct line types on a purchase, in a stable order. */
 const lineTypes = (p: Purchase): PurchaseType[] => {
@@ -53,7 +46,7 @@ const columns: ColumnsType<Purchase> = [
     render: (_, r) => (
       <>
         {lineTypes(r).map((t) => (
-          <Tag color={TYPE_COLOR[t]} key={t}>
+          <Tag color={PURCHASE_TYPE_COLOR[t]} key={t}>
             {PURCHASE_TYPE_LABELS[t]}
           </Tag>
         ))}
@@ -108,7 +101,7 @@ const lineColumns: ColumnsType<PurchaseLine> = [
   {
     title: 'Type',
     dataIndex: 'type',
-    render: (t: PurchaseType) => <Tag color={TYPE_COLOR[t]}>{PURCHASE_TYPE_LABELS[t]}</Tag>,
+    render: (t: PurchaseType) => <Tag color={PURCHASE_TYPE_COLOR[t]}>{PURCHASE_TYPE_LABELS[t]}</Tag>,
   },
   { title: 'Item / description', dataIndex: 'itemName' },
   { title: 'Location', dataIndex: 'locationName', render: (v: string) => v || '—' },

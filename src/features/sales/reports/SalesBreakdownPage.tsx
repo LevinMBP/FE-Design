@@ -19,7 +19,7 @@ import type {
   SalesBreakdownTotals,
 } from '../salesBreakdown'
 import type { InvoiceStatus } from '../types'
-import './SalesBreakdown.css'
+import '../../../shared/styles/report.css'
 
 const { RangePicker } = DatePicker
 

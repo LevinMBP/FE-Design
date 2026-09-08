@@ -48,12 +48,14 @@ export const INVENTORY_SECTIONS: PlannedSection[] = [
   { icon: ArrowLeftRight, label: 'Stock In / Out', desc: 'Track every movement in and out of inventory.', to: '/inventory/stock' },
   { icon: ClipboardCheck, label: 'Audits', desc: 'Count stock and record variances against the system.', to: '/inventory/audits' },
   { icon: SlidersHorizontal, label: 'Adjustments', desc: 'Correct on-hand for recounts, damage, loss or found stock.', to: '/inventory/adjustments' },
+  { icon: BarChart3, label: 'Stock Movement Breakdown', desc: 'Opening, in, out and closing value by item, source or location.', to: '/inventory/reports/breakdown' },
 ]
 
 export const PURCHASES_SECTIONS: PlannedSection[] = [
   { icon: ShoppingCart, label: 'Orders', desc: 'Purchase orders that receive stock in.', to: '/purchases/orders' },
   { icon: Banknote, label: 'Payments', desc: 'Pay vendors and allocate it across their open orders.', to: '/purchases/payments' },
   { icon: Truck, label: 'Vendors', desc: 'Suppliers you purchase from.', to: '/purchases/vendors' },
+  { icon: BarChart3, label: 'Purchase Breakdown', desc: 'Spend and input tax by item, order or vendor.', to: '/purchases/reports/breakdown' },
 ]
 
 export const SALES_SECTIONS: PlannedSection[] = [

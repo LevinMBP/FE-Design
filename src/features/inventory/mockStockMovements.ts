@@ -255,14 +255,15 @@ interface LotQueue {
 }
 
 /**
- * Replay movements through a lean FIFO queue, calling `onIssue` with the cost of
- * the lots each issue consumed. Allocates no ledger rows and no per-row lot
- * snapshots — the shape to use when only the *cost* is wanted, not the display
- * ledger. Returns the queue left standing (the remaining layers).
+ * Replay movements through a lean FIFO queue, calling `onMove` with each
+ * movement's value — a receipt at its own lot cost, an issue at the cost of the
+ * lots it consumed. Allocates no ledger rows and no per-row lot snapshots — the
+ * shape to use when only the *value* is wanted, not the display ledger. Returns
+ * the queue left standing (the remaining layers).
  */
 function replayLots(
   moves: RawMovement[],
-  onIssue?: (m: RawMovement, cost: number) => void,
+  onMove?: (m: RawMovement, value: number) => void,
 ): LotQueue {
   const qty: number[] = []
   const cost: number[] = []
@@ -271,6 +272,7 @@ function replayLots(
     if (m.direction === 'in') {
       qty.push(m.quantity)
       cost.push(m.unitCost)
+      onMove?.(m, round2(m.quantity * m.unitCost))
       continue
     }
     let remaining = m.quantity
@@ -282,7 +284,7 @@ function replayLots(
       remaining -= take
       if (qty[head] === 0) head++
     }
-    onIssue?.(m, consumed)
+    onMove?.(m, round2(consumed))
   }
   return { qty, cost, head }
 }
@@ -299,19 +301,11 @@ function replayLots(
  * reported.
  */
 export function saleCostsByReference(): Map<string, Map<string, number>> {
-  const byItem = new Map<string, RawMovement[]>()
-  for (const m of listAllMovements()) {
-    const key = `${m.itemKind}:${m.itemId}`
-    const moves = byItem.get(key)
-    if (moves) moves.push(m)
-    else byItem.set(key, [m])
-  }
-
   const result = new Map<string, Map<string, number>>()
-  for (const [key, moves] of byItem) {
+  for (const [key, moves] of movementsByItem()) {
     const costByReference = new Map<string, number>()
     replayLots(moves, (m, cost) => {
-      if (m.source !== 'Sale') return
+      if (m.source !== 'Sale' || m.direction !== 'out') return
       costByReference.set(
         m.reference,
         round2((costByReference.get(m.reference) ?? 0) + cost),
@@ -320,6 +314,54 @@ export function saleCostsByReference(): Map<string, Map<string, number>> {
     if (costByReference.size > 0) result.set(key, costByReference)
   }
   return result
+}
+
+/** The whole movement table grouped by item, each group in ledger order. */
+function movementsByItem(): Map<string, RawMovement[]> {
+  const grouped = new Map<string, RawMovement[]>()
+  for (const m of listAllMovements()) {
+    const key = `${m.itemKind}:${m.itemId}`
+    const moves = grouped.get(key)
+    if (moves) moves.push(m)
+    else grouped.set(key, [m])
+  }
+  return grouped
+}
+
+/** A stored movement with its FIFO value and the item state it left behind. */
+export interface ValuedMovement extends RawMovement {
+  /** Receipts at their lot cost, issues at the cost of the lots they consumed. */
+  value: number
+  /** The item's on-hand immediately after this movement. */
+  balance: number
+  /** The item's total stock value immediately after it. */
+  stockValue: number
+}
+
+/**
+ * Every stored movement, valued, with the running on-hand and stock value it
+ * left the item at — the raw material for a stock roll-forward (opening + in −
+ * out = closing) over any window.
+ *
+ * Replays the table once through the lean lot queue, so it stays linear in
+ * movements where reading each item's display ledger would rebuild a row per
+ * movement per item. Oldest first, ties broken by insertion order.
+ */
+export function listValuedMovements(): ValuedMovement[] {
+  const valued: ValuedMovement[] = []
+  for (const moves of movementsByItem().values()) {
+    let balance = 0
+    let stockValue = 0
+    replayLots(moves, (m, value) => {
+      const inbound = m.direction === 'in'
+      balance = round2(balance + (inbound ? m.quantity : -m.quantity))
+      stockValue = round2(stockValue + (inbound ? value : -value))
+      valued.push({ ...m, value, balance, stockValue })
+    })
+  }
+  return valued.sort((a, b) =>
+    a.date === b.date ? a.seq - b.seq : a.date.localeCompare(b.date),
+  )
 }
 
 /**

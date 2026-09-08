@@ -1,4 +1,5 @@
-/* Month sections of the Sales Breakdown report. */
+/* Chrome shared by the breakdown reports (sales, purchases): the month
+   section headings and the totals rows that close each table off. */
 .report-month {
   display: flex;
   align-items: baseline;

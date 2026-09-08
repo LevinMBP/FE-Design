@@ -299,6 +299,15 @@ export const PURCHASE_TYPE_LABELS: Record<PurchaseType, string> = {
   expense: 'Expense',
 }
 
+/** Tag colour per purchase type, so a line reads the same on every screen. */
+export const PURCHASE_TYPE_COLOR: Record<PurchaseType, string> = {
+  material: 'blue',
+  product: 'geekblue',
+  asset: 'purple',
+  service: 'cyan',
+  expense: 'gold',
+}
+
 /** Purchase types that add to inventory (and only these). */
 export const PURCHASE_STOCK_TYPES: PurchaseType[] = ['material', 'product']
 

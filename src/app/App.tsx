@@ -40,10 +40,12 @@ import AdjustmentFormPage from '../features/inventory/adjustments/AdjustmentForm
 import CustomerDetailPage from '../features/contacts/customers/CustomerDetailPage'
 import VendorDetailPage from '../features/contacts/vendors/VendorDetailPage'
 import LocationDetailPage from '../features/inventory/locations/LocationDetailPage'
+import StockBreakdownPage from '../features/inventory/reports/StockBreakdownPage'
 import PurchasesModule from '../features/purchases/PurchasesModule'
 import PurchasesPage from '../features/purchases/PurchasesPage'
 import PurchaseFormPage from '../features/purchases/PurchaseFormPage'
 import PaymentsPage from '../features/purchases/payments/PaymentsPage'
+import PurchaseBreakdownPage from '../features/purchases/reports/PurchaseBreakdownPage'
 import PaymentFormPage from '../features/purchases/payments/PaymentFormPage'
 import SalesModule from '../features/sales/SalesModule'
 import SalesPage from '../features/sales/SalesPage'
@@ -145,6 +147,7 @@ function App() {
         <Route path="/inventory/audits/:id" element={<AuditDetailPage />} />
         <Route path="/inventory/adjustments" element={<AdjustmentsPage />} />
         <Route path="/inventory/adjustments/new" element={<AdjustmentFormPage />} />
+        <Route path="/inventory/reports/breakdown" element={<StockBreakdownPage />} />
         <Route path="/sales/customers" element={<CustomersPage />} />
         <Route path="/sales/customers/new" element={<CustomerFormPage />} />
         <Route path="/sales/customers/:id" element={<CustomerDetailPage />} />
@@ -181,6 +184,7 @@ function App() {
         <Route path="/purchases/orders/new" element={<PurchaseFormPage />} />
         <Route path="/purchases/payments" element={<PaymentsPage />} />
         <Route path="/purchases/payments/new" element={<PaymentFormPage />} />
+        <Route path="/purchases/reports/breakdown" element={<PurchaseBreakdownPage />} />
         <Route path="/sales" element={<SalesModule />} />
         <Route path="/sales/quotations" element={<QuotationsPage />} />
         <Route path="/sales/quotations/new" element={<QuotationFormPage />} />

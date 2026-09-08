@@ -28,9 +28,16 @@ const pad3 = (n: number) => String(n).padStart(3, '0')
 
 let purchases: Purchase[] = []
 let poNo = 0
+/** Bumps whenever a purchase is created or settled — a cache key for derived
+    reports, which must not serve figures from before the change. */
+let purchaseVersion = 0
 
 export function listPurchases(): Purchase[] {
   return [...purchases]
+}
+
+export function purchasesVersion(): number {
+  return purchaseVersion
 }
 
 /** The next auto PO reference, without consuming it (for form defaults). */
@@ -51,6 +58,7 @@ export function applyPurchasePayment(id: string, amount: number): Purchase {
     return updated
   })
   if (!updated) throw new Error('That purchase no longer exists.')
+  purchaseVersion++
   return updated
 }
 
@@ -182,6 +190,7 @@ export function createPurchase(input: NewPurchase): Purchase {
     amountPaid: 0,
   }
   purchases = [record, ...purchases]
+  purchaseVersion++
 
   // Dr <account(s) by line type> / Dr Input Tax / Cr Accounts Payable (total).
   // Debits are scaled for the discount; any rounding drift lands on the first
